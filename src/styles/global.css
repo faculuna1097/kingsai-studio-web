@@ -13,6 +13,7 @@
   --rose: oklch(0.6 0.19 27);
   --rose-text: oklch(0.7 0.16 27);
   --flash: oklch(0.93 0.04 85); /* fondo del logo */
+  --open: oklch(0.8 0.17 150); /* punto de "Abierta ahora" */
 
   --font-display: 'Bodoni Moda Variable', 'Bodoni 72', Didot, serif;
   --font-body: 'Hanken Grotesk Variable', system-ui, sans-serif;

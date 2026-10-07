@@ -3,6 +3,9 @@ import { Image } from 'astro:assets';
 import Layout from '../layouts/Layout.astro';
 import Sparkle from '../components/Sparkle.astro';
 import Arrow from '../components/Arrow.astro';
+import EstadoLocal from '../components/EstadoLocal.astro';
+import Mapa from '../components/Mapa.astro';
+import InstagramIcon from '../components/InstagramIcon.astro';
 import localFoto from '../assets/local.webp';
 import logo from '../assets/logo.webp';
 import { SITE, FULL_ADDRESS, bookingUrl } from '../config';
@@ -14,13 +17,16 @@ const horarios = await getHorarios();
 
 // Para mostrar: las franjas de un mismo grupo de días van en una sola fila
 // ("Lunes a viernes: 10:00 a 13:00 y 16:00 a 20:00").
-const horariosPorDias = horarios.reduce<{ label: string; franjas: string[] }[]>((filas, h) => {
+const horariosPorDias = horarios.reduce<{ label: string; days: string[]; franjas: string[] }[]>((filas, h) => {
   const franja = `${h.opens} a ${h.closes}`;
   const ultima = filas[filas.length - 1];
   if (ultima?.label === h.label) ultima.franjas.push(franja);
-  else filas.push({ label: h.label, franjas: [franja] });
+  else filas.push({ label: h.label, days: h.days, franjas: [franja] });
   return filas;
 }, []);
+
+// "@kingsai.studio", sacado del link de Instagram.
+const instagramUsuario = SITE.instagram?.match(/instagram\.com\/([^/?#]+)/)?.[1];
 
 // Respuestas confirmadas por la barbería (oct-2026). Sirven también para la ficha de Google.
 const faq = [
@@ -98,6 +104,10 @@ const jsonLd = {
 >
   <!-- Hero -->
   <section class="hero" data-hero>
+    <!-- En pantallas anchas: el mismo video, desenfocado, llena el fondo. -->
+    <div class="hero__ambient" aria-hidden="true">
+      <canvas width="36" height="64" data-hero-ambient></canvas>
+    </div>
     <div class="hero__media">
       <video
         autoplay
@@ -111,21 +121,20 @@ const jsonLd = {
       >
         <source src="/media/hero.mp4" type="video/mp4" />
       </video>
-      <button class="hero__toggle" type="button" aria-pressed="false" data-video-toggle>
-        <span class="visually-hidden" data-video-label>Pausar video</span>
-        <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25">
-          <path d="M9 6v12M15 6v12" />
-        </svg>
-        <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25">
-          <path d="M8 5.5v13l11-6.5z" />
-        </svg>
-      </button>
     </div>
 
     <div class="hero__content">
       <hr class="tube hero__tube" />
       <h1 class="hero__title">Kingsai<br />Studio</h1>
-      <p class="hero__sub">Barbería en Pilar, Golf Club</p>
+      {
+        SITE.instagram && instagramUsuario && (
+          <a class="hero__ig" href={SITE.instagram} rel="noopener" aria-label={`Instagram de ${SITE.name}: @${instagramUsuario}`}>
+            <InstagramIcon />
+            <span>@{instagramUsuario}</span>
+          </a>
+        )
+      }
+      <EstadoLocal horarios={horarios} class="hero__estado" />
       <div class="hero__actions">
         <a class="btn btn--solid" href={bookingUrl('hero')}>Reservar turno <Arrow /></a>
         <a class="link" href="#servicios">Ver servicios y precios</a>
@@ -133,8 +142,9 @@ const jsonLd = {
     </div>
   </section>
 
-  <!-- El local -->
-  <section class="local section">
+  <!-- Nosotros: el local, la raíz tattoo y cómo llegar -->
+  <section class="nosotros section" id="nosotros" aria-labelledby="nosotros-titulo">
+    <h2 id="nosotros-titulo" class="visually-hidden">Nosotros</h2>
     <div class="wrap local__grid">
       <p class="local__statement">
         Paredes grafito, techo negro y tubos de luz blanca. Una luz que no perdona: por eso cada línea sale
@@ -149,6 +159,35 @@ const jsonLd = {
         />
         <figcaption>{SITE.address.street}, Pilar</figcaption>
       </figure>
+    </div>
+
+    <div class="wrap raiz">
+      <div class="raiz__logo">
+        <Image src={logo} alt="Logo de Kingsai Studio: la Virgen entre dos rosas rojas, en estilo tattoo tradicional" width={486} />
+      </div>
+      <div class="raiz__texto">
+        <h3 class="nosotros__titulo">
+          Raíz tattoo
+          <Sparkle class="raiz__sparkle" />
+        </h3>
+        <p class="lede">
+          La marca viene del tattoo tradicional: la Virgen, las rosas rojas, los destellos. En las paredes cuelga flash
+          enmarcado. El resto es silencio, buena luz y oficio.
+        </p>
+      </div>
+    </div>
+
+    <div class="wrap llegar" id="como-llegar">
+      <div class="llegar__texto">
+        <h3 class="nosotros__titulo">Cómo llegar</h3>
+        <!-- Forma de decirlo en el barrio. La dirección exacta (para Google) sigue en config.ts. -->
+        <address class="llegar__address">
+          {SITE.address.street},<br />
+          Manuel Alberti - {SITE.address.locality}, {SITE.address.region}
+        </address>
+        <a class="btn llegar__btn" href={SITE.googleMaps} rel="noopener">Abrir en Google Maps <Arrow /></a>
+      </div>
+      {SITE.geo && <Mapa lat={SITE.geo.lat} lng={SITE.geo.lng} />}
     </div>
   </section>
 
@@ -176,55 +215,44 @@ const jsonLd = {
   <!-- Equipo -->
   {
     barberos.length > 0 && (
-      <section class="equipo section" id="equipo" aria-labelledby="equipo-titulo">
-        <div class="wrap">
-          <h2 id="equipo-titulo">Quién te corta</h2>
-        </div>
-        <ul class="equipo__list" role="list">
-          {barberos.map((b) => (
-            <li class="barbero">
-              <div class="barbero__foto">
-                {b.fotoUrl ? (
-                  <img src={b.fotoUrl} alt={`${b.nombre}, barbero de ${SITE.name}`} loading="lazy" />
-                ) : (
-                  <span class="barbero__inicial" aria-hidden="true">
-                    {b.nombre.charAt(0)}
-                    <Sparkle class="barbero__sparkle" />
-                  </span>
+      <section class="equipo section" id="barberos" aria-labelledby="equipo-titulo">
+        <div class="wrap equipo__grid">
+          <div class="equipo__intro">
+            <h2 id="equipo-titulo">Quién te corta</h2>
+            <p class="equipo__texto">Elegís con quién al reservar.</p>
+            <a class="link" href={bookingUrl('barberos')}>Reservar con tu barbero</a>
+          </div>
+          <ul class="equipo__list" role="list">
+            {barberos.map((b) => (
+              <li class="barbero">
+                {/* Cuadro flash, como los de las paredes: la foto va adentro cuando exista. */}
+                <div class="flash">
+                  <div class="flash__interior">
+                    {b.fotoUrl ? (
+                      <img src={b.fotoUrl} alt={`${b.nombre}, barbero de ${SITE.name}`} loading="lazy" />
+                    ) : (
+                      <span class="flash__monograma" aria-hidden="true">
+                        {b.nombre.trim().charAt(0)}
+                      </span>
+                    )}
+                  </div>
+                  <Sparkle class="flash__destello flash__destello--arriba" />
+                  <Sparkle class="flash__destello flash__destello--abajo" />
+                </div>
+                <p class="barbero__nombre">{b.nombre}</p>
+                {b.rol && <p class="barbero__rol">{b.rol}</p>}
+                {b.instagram && (
+                  <a class="link barbero__ig" href={b.instagram} rel="noopener">
+                    Ver trabajos
+                  </a>
                 )}
-              </div>
-              <p class="barbero__nombre">{b.nombre}</p>
-              {b.rol && <p class="barbero__rol">{b.rol}</p>}
-              {b.instagram && (
-                <a class="link barbero__ig" href={b.instagram} rel="noopener">
-                  Ver trabajos
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
     )
   }
-
-  <!-- Raíz tattoo -->
-  <section class="raiz section" aria-labelledby="raiz-titulo">
-    <div class="wrap raiz__grid">
-      <div class="raiz__logo">
-        <Image src={logo} alt="Logo de Kingsai Studio: la Virgen entre dos rosas rojas, en estilo tattoo tradicional" width={486} />
-      </div>
-      <div class="raiz__texto">
-        <h2 id="raiz-titulo">
-          Raíz tattoo
-          <Sparkle class="raiz__sparkle" />
-        </h2>
-        <p class="lede">
-          La marca viene del tattoo tradicional: la Virgen, las rosas rojas, los destellos. En las paredes cuelga flash
-          enmarcado. El resto es silencio, buena luz y oficio.
-        </p>
-      </div>
-    </div>
-  </section>
 
   <!-- Preguntas -->
   <section class="faq section" aria-labelledby="faq-titulo">
@@ -246,20 +274,17 @@ const jsonLd = {
     </div>
   </section>
 
-  <!-- Ubicación -->
-  <section class="ubicacion section" id="ubicacion" aria-labelledby="ubicacion-titulo">
-    <div class="wrap ubicacion__grid">
+  <!-- Contacto: estado, horarios y canales -->
+  <section class="contacto section" id="contacto" aria-labelledby="contacto-titulo">
+    <div class="wrap contacto__grid">
       <div>
-        <h2 id="ubicacion-titulo">Dónde estamos</h2>
-        <address class="ubicacion__address">
-          {SITE.address.street}<br />
-          {SITE.address.postalCode} {SITE.address.locality}, {SITE.address.region}
-        </address>
+        <h2 id="contacto-titulo">Contacto</h2>
+        <EstadoLocal horarios={horarios} class="contacto__estado" />
         {
           horariosPorDias.length > 0 && (
-            <dl class="ubicacion__hours">
+            <dl class="contacto__hours">
               {horariosPorDias.map((h) => (
-                <div>
+                <div data-dias={h.days.join(',')}>
                   <dt>{h.label}</dt>
                   <dd>{h.franjas.join(' y ')}</dd>
                 </div>
@@ -267,23 +292,41 @@ const jsonLd = {
             </dl>
           )
         }
-        <div class="ubicacion__actions">
-          <a class="btn" href={SITE.googleMaps} rel="noopener">Cómo llegar <Arrow /></a>
+      </div>
+
+      <div class="contacto__canales">
+        <a class="btn btn--solid" href={bookingUrl('contacto')}>Reservar turno <Arrow /></a>
+        <ul class="canales" role="list">
           {
-            SITE.whatsapp && (
-              <a class="link" href={`https://wa.me/${SITE.whatsapp}`} rel="noopener">
-                Escribinos por WhatsApp
-              </a>
+            SITE.instagram && (
+              <li>
+                <a class="canal" href={SITE.instagram} rel="noopener">
+                  <span class="canal__nombre">Instagram</span>
+                  {instagramUsuario && <span class="canal__dato">@{instagramUsuario}</span>}
+                  <Arrow />
+                </a>
+              </li>
             )
           }
-        </div>
-      </div>
-      <div class="ubicacion__map">
-        <iframe
-          title={`Mapa de ${SITE.name}`}
-          src={`https://www.google.com/maps?q=${encodeURIComponent(`${SITE.name}, ${FULL_ADDRESS}`)}&output=embed`}
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"></iframe>
+          {
+            SITE.whatsapp && (
+              <li>
+                <a class="canal" href={`https://wa.me/${SITE.whatsapp}`} rel="noopener">
+                  <span class="canal__nombre">WhatsApp</span>
+                  <span class="canal__dato">Escribinos</span>
+                  <Arrow />
+                </a>
+              </li>
+            )
+          }
+          <li>
+            <a class="canal" href="#como-llegar">
+              <span class="canal__nombre">Dirección</span>
+              <span class="canal__dato">{SITE.address.street}</span>
+              <Arrow />
+            </a>
+          </li>
+        </ul>
       </div>
     </div>
   </section>
@@ -291,20 +334,52 @@ const jsonLd = {
 
 <script>
   const video = document.querySelector<HTMLVideoElement>('[data-hero-video]');
-  const toggle = document.querySelector<HTMLButtonElement>('[data-video-toggle]');
-  const label = document.querySelector('[data-video-label]');
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-  function setPaused(paused: boolean) {
-    if (!video || !toggle || !label) return;
-    if (paused) video.pause();
-    else video.play().catch(() => setPaused(true));
-    toggle.setAttribute('aria-pressed', String(paused));
-    label.textContent = paused ? 'Reproducir video' : 'Pausar video';
+  // Con movimiento reducido el video queda quieto en el primer cuadro.
+  if (video && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    video.removeAttribute('autoplay');
+    video.pause();
   }
 
-  if (reduce.matches) setPaused(true);
-  toggle?.addEventListener('click', () => setPaused(!video?.paused));
+  // Fondo del hero en pantallas anchas: copia el video cuadro a cuadro en un
+  // canvas diminuto que el CSS agranda y desenfoca. Un solo video, siempre sincronizado.
+  const ambient = document.querySelector<HTMLCanvasElement>('[data-hero-ambient]');
+  const ctx = ambient?.getContext('2d');
+  const wide = window.matchMedia('(min-width: 56rem)');
+
+  if (video && ambient && ctx) {
+    let running = 0; // id del loop activo; 0 = detenido
+    let visible = true;
+
+    const draw = () => {
+      if (video.readyState < 2) return;
+      ctx.drawImage(video, 0, 0, ambient.width, ambient.height);
+      ambient.classList.add('is-live');
+    };
+    const next = (cb: () => void) =>
+      'requestVideoFrameCallback' in video ? video.requestVideoFrameCallback(cb) : requestAnimationFrame(cb);
+    const loop = (id: number) => {
+      if (id !== running) return;
+      draw();
+      next(() => loop(id));
+    };
+    const sync = () => {
+      const active = wide.matches && visible;
+      const play = active && !video.paused;
+      if (active) draw();
+      if (play && !running) {
+        const id = (running = performance.now());
+        next(() => loop(id));
+      }
+      if (!play) running = 0;
+    };
+
+    ['play', 'pause', 'loadeddata'].forEach((e) => video.addEventListener(e, sync));
+    wide.addEventListener('change', sync);
+    new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      sync();
+    }).observe(ambient);
+  }
 </script>
 
 <style>
@@ -340,37 +415,6 @@ const jsonLd = {
     pointer-events: none;
   }
 
-  .hero__toggle {
-    position: absolute;
-    z-index: 1;
-    top: calc(var(--header-h) + env(safe-area-inset-top) + 0.75rem);
-    right: var(--gutter);
-    display: grid;
-    place-items: center;
-    width: 2.75rem;
-    height: 2.75rem;
-    padding: 0;
-    border: 1px solid var(--line-strong);
-    background: oklch(0.145 0.008 255 / 0.35);
-    color: var(--light);
-    cursor: pointer;
-    backdrop-filter: blur(6px);
-  }
-
-  .hero__toggle svg {
-    width: 1.125rem;
-    height: 1.125rem;
-  }
-
-  .hero__toggle .icon-play,
-  .hero__toggle[aria-pressed='true'] .icon-pause {
-    display: none;
-  }
-
-  .hero__toggle[aria-pressed='true'] .icon-play {
-    display: block;
-  }
-
   .hero__content {
     width: min(100% - 2 * var(--gutter), var(--max));
     margin-inline: auto;
@@ -392,12 +436,34 @@ const jsonLd = {
     animation: focus-in 1.4s var(--ease-out) 0.35s both;
   }
 
-  .hero__sub {
-    margin-top: 1.25rem;
+  .hero__ig {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    width: fit-content;
+    min-height: 2.75rem;
+    margin-top: 0.75rem;
     color: var(--text-muted);
     font-size: 1.0625rem;
     letter-spacing: 0.02em;
+    text-decoration: none;
+    transition: color 0.3s;
     animation: focus-in 1.2s var(--ease-out) 0.6s both;
+  }
+
+  .hero__ig:hover {
+    color: var(--light);
+  }
+
+  .hero__ig :global(svg) {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  .hero :global(.hero__estado) {
+    margin-top: 0.5rem;
+    animation: focus-in 1.2s var(--ease-out) 0.68s both;
   }
 
   .hero__actions {
@@ -405,7 +471,7 @@ const jsonLd = {
     flex-wrap: wrap;
     align-items: center;
     gap: 0.75rem 1.75rem;
-    margin-top: 2.25rem;
+    margin-top: 2rem;
     animation: focus-in 1.2s var(--ease-out) 0.75s both;
   }
 
@@ -435,13 +501,51 @@ const jsonLd = {
     }
   }
 
-  /* En pantallas anchas el video vertical va en su propio marco, sin estirarse. */
+  .hero__ambient {
+    display: none;
+  }
+
+  /* En pantallas anchas: el video nítido ocupa todo el alto, sin estirarse,
+     y el mismo video desenfocado llena el resto, como la luz del local. */
   @media (min-width: 56rem) {
     .hero {
-      grid-template-columns: 1fr minmax(0, 28rem);
-      gap: clamp(2rem, 6vw, 6rem);
-      align-items: center;
-      padding: calc(var(--header-h) + 3rem) max(var(--gutter), (100% - var(--max)) / 2) 4rem;
+      grid-template-columns: 1fr auto;
+      gap: clamp(2rem, 5vw, 5rem);
+      padding-inline: max(var(--gutter), (100% - var(--max)) / 2);
+    }
+
+    /* El póster cubre mientras el video carga; el desenfoque va sobre todo el bloque. */
+    .hero__ambient {
+      position: absolute;
+      z-index: -2;
+      inset: 0;
+      display: block;
+      background: url('/media/hero-poster.jpg') center / cover;
+      filter: blur(36px) saturate(0.7) brightness(0.55);
+      transform: scale(1.15);
+    }
+
+    .hero__ambient canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 1.2s var(--ease-out);
+    }
+
+    .hero__ambient canvas:global(.is-live) {
+      opacity: 1;
+    }
+
+    /* Oscurece el lado del texto para que el título se lea siempre. */
+    .hero::before {
+      position: absolute;
+      z-index: -1;
+      inset: 0;
+      background:
+        linear-gradient(to bottom, oklch(0.145 0.008 255 / 0.6), transparent 20%),
+        linear-gradient(to right, oklch(0.145 0.008 255 / 0.85) 20%, oklch(0.145 0.008 255 / 0.45));
+      content: '';
     }
 
     .hero__media {
@@ -450,21 +554,15 @@ const jsonLd = {
       inset: auto;
       grid-column: 2;
       grid-row: 1;
-      aspect-ratio: 9 / 16;
-      max-height: calc(100svh - var(--header-h) - 7rem);
-      justify-self: end;
-      outline: 1px solid var(--line);
-      outline-offset: 0.75rem;
+      align-self: stretch;
+      width: min(100svh * 9 / 16, 45vw);
+      box-shadow: 0 0 80px oklch(0.145 0.008 255 / 0.6);
     }
 
     .hero__media::after {
-      background: linear-gradient(to top, oklch(0.145 0.008 255 / 0.4), transparent 40%);
-    }
-
-    .hero__toggle {
-      top: auto;
-      right: 1rem;
-      bottom: 1rem;
+      background:
+        linear-gradient(to bottom, oklch(0.145 0.008 255 / 0.6), transparent 20%),
+        linear-gradient(to top, oklch(0.145 0.008 255 / 0.4), transparent 35%);
     }
 
     .hero__content {
@@ -472,7 +570,7 @@ const jsonLd = {
       grid-row: 1;
       width: auto;
       margin: 0;
-      padding: 0;
+      padding: calc(var(--header-h) + 3rem) 0 clamp(4rem, 9vh, 6.5rem);
     }
 
     .hero__title {
@@ -613,63 +711,98 @@ const jsonLd = {
   }
 
   /* ---------- Equipo ---------- */
+  .equipo__grid {
+    display: grid;
+    gap: 3rem;
+  }
+
+  .equipo__texto {
+    margin-top: 1.5rem;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+  }
+
+  .equipo__intro .link {
+    margin-top: 0.5rem;
+    text-decoration-line: underline;
+  }
+
+  /* En celular, dos cuadros por fila; con más barberos siguen en filas nuevas. */
   .equipo__list {
-    display: flex;
-    gap: 1rem;
-    margin: 3rem 0 0;
-    padding: 0 var(--gutter) 0.5rem;
-    overflow-x: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2.5rem 1rem;
+    margin: 0;
+    padding: 0;
     list-style: none;
-    scroll-padding-inline: var(--gutter);
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
   }
 
-  .equipo__list::-webkit-scrollbar {
-    display: none;
+  /* Si queda uno solo en la última fila, va centrado y del mismo ancho que los demás. */
+  @media (max-width: 55.99rem) {
+    .barbero:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+      justify-self: center;
+      width: calc(50% - 0.5rem);
+    }
   }
 
-  .barbero {
-    flex: 0 0 min(72vw, 17rem);
-    scroll-snap-align: start;
-  }
-
-  .barbero__foto {
+  /* Cuadro flash: marco exterior, paspartú e interior, como los cuadros del local. */
+  .flash {
     position: relative;
+    padding: 0.5rem;
+    border: 1px solid var(--line-strong);
+  }
+
+  .flash__interior {
+    display: grid;
+    place-items: center;
     aspect-ratio: 3 / 4;
     overflow: hidden;
     border: 1px solid var(--line);
-    background: radial-gradient(120% 80% at 50% 0%, var(--wall), var(--graphite) 70%);
+    background: var(--graphite);
   }
 
-  .barbero__foto img {
+  .flash__interior img {
     width: 100%;
     height: 100%;
     object-fit: cover;
   }
 
-  .barbero__inicial {
-    display: grid;
-    place-items: center;
-    height: 100%;
-    color: oklch(0.97 0.004 255 / 0.85);
+  .flash__monograma {
+    color: oklch(0.97 0.004 255 / 0.9);
     font-family: var(--font-display);
-    font-size: 8rem;
+    font-size: clamp(3.5rem, 15vw, 5.5rem);
     font-variation-settings: 'opsz' 96;
+    line-height: 1;
   }
 
-  .barbero__foto :global(.barbero__sparkle) {
+  /* Destellos rojos sobre dos esquinas del interior; el trazo oscuro corta las líneas del marco. */
+  .flash :global(.flash__destello) {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
-    width: 1rem;
+    width: 0.875rem;
+    height: 0.875rem;
     color: var(--rose);
+    stroke: var(--night);
+    stroke-width: 3px;
+    paint-order: stroke;
+  }
+
+  .flash :global(.flash__destello--arriba) {
+    top: calc(0.5rem - 0.4375rem);
+    left: calc(0.5rem - 0.4375rem);
+  }
+
+  .flash :global(.flash__destello--abajo) {
+    right: calc(0.5rem - 0.4375rem);
+    bottom: calc(0.5rem - 0.4375rem);
   }
 
   .barbero__nombre {
     margin-top: 1rem;
     font-family: var(--font-display);
-    font-size: 1.5rem;
+    font-size: clamp(1.375rem, 5vw, 1.625rem);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
   }
 
   .barbero__rol {
@@ -678,26 +811,30 @@ const jsonLd = {
   }
 
   @media (min-width: 56rem) {
+    .equipo__grid {
+      grid-template-columns: 1fr 1.6fr;
+      align-items: start;
+      gap: 6rem;
+    }
+
     .equipo__list {
-      width: min(100% - 2 * var(--gutter), var(--max));
-      margin-inline: auto;
-      padding-inline: 0;
-      overflow: visible;
-    }
-
-    .barbero {
-      flex-basis: 16rem;
+      grid-template-columns: repeat(auto-fill, minmax(11rem, 15rem));
+      gap: 3rem 2rem;
     }
   }
 
-  /* ---------- Raíz tattoo ---------- */
-  .raiz {
-    border-block: 1px solid var(--line);
+  /* ---------- Nosotros: raíz tattoo y cómo llegar ---------- */
+  .nosotros__titulo {
+    font-size: clamp(2.25rem, 8vw, 3.5rem);
   }
 
-  .raiz__grid {
+  .raiz,
+  .llegar {
     display: grid;
     gap: 3rem;
+    margin-top: clamp(5rem, 14vw, 9rem);
+    padding-top: clamp(5rem, 14vw, 9rem);
+    border-top: 1px solid var(--line);
   }
 
   .raiz__logo {
@@ -711,7 +848,7 @@ const jsonLd = {
     height: auto;
   }
 
-  .raiz__texto h2 {
+  .raiz__texto h3 {
     display: flex;
     align-items: flex-start;
     gap: 0.75rem;
@@ -728,10 +865,26 @@ const jsonLd = {
     margin-top: 1.5rem;
   }
 
+  .llegar__address {
+    margin-top: 1.5rem;
+    font-size: 1.125rem;
+    font-style: normal;
+  }
+
+  .llegar__btn {
+    margin-top: 2rem;
+  }
+
   @media (min-width: 56rem) {
-    .raiz__grid {
+    .raiz {
       grid-template-columns: auto 1fr;
       align-items: center;
+      gap: 6rem;
+    }
+
+    .llegar {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr);
+      align-items: end;
       gap: 6rem;
     }
   }
@@ -806,64 +959,108 @@ const jsonLd = {
     }
   }
 
-  /* ---------- Ubicación ---------- */
-  .ubicacion {
+  /* ---------- Contacto ---------- */
+  .contacto {
     background: var(--graphite);
   }
 
-  .ubicacion__grid {
+  .contacto__grid {
     display: grid;
-    gap: 3rem;
+    gap: 3.5rem;
   }
 
-  .ubicacion__address {
+  .contacto :global(.contacto__estado) {
     margin-top: 1.75rem;
-    font-size: 1.125rem;
-    font-style: normal;
   }
 
-  .ubicacion__hours {
+  .contacto__hours {
     display: grid;
-    gap: 0.25rem;
+    max-width: 26rem;
     margin: 1.5rem 0 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .contacto__hours div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    padding-block: 0.75rem;
+    border-bottom: 1px solid var(--line);
     color: var(--text-muted);
   }
 
-  .ubicacion__hours div {
-    display: flex;
-    justify-content: space-between;
-    max-width: 22rem;
-  }
-
-  .ubicacion__hours dd {
+  .contacto__hours dd {
     margin: 0;
     color: var(--light);
     font-variant-numeric: tabular-nums;
+    text-align: right;
   }
 
-  .ubicacion__actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.75rem 1.75rem;
-    margin-top: 2rem;
+  .contacto__hours div:global(.is-hoy) dt {
+    color: var(--light);
   }
 
-  .ubicacion__map {
-    border: 1px solid var(--line);
+  .contacto__hours div:global(.is-hoy) dt::after {
+    color: var(--text-muted);
+    content: ' · hoy';
   }
 
-  .ubicacion__map iframe {
+  .contacto__canales {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    gap: 2.5rem;
+  }
+
+  .canales {
     width: 100%;
-    aspect-ratio: 4 / 3;
-    border: 0;
-    filter: grayscale(1) invert(0.92) contrast(0.9);
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--line);
+    list-style: none;
+  }
+
+  .canal {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'nombre flecha'
+      'dato flecha';
+    align-items: center;
+    column-gap: 1.5rem;
+    padding-block: 1.25rem;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+  }
+
+  .canal__nombre {
+    grid-area: nombre;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .canal__dato {
+    grid-area: dato;
+    color: var(--text-muted);
+    font-size: 0.9375rem;
+    overflow-wrap: anywhere;
+  }
+
+  .canal :global(svg) {
+    grid-area: flecha;
+    width: 1.125rem;
+    height: 1.125rem;
+    transition: transform 0.35s var(--ease-out);
+  }
+
+  .canal:hover :global(svg) {
+    transform: translateX(3px);
   }
 
   @media (min-width: 56rem) {
-    .ubicacion__grid {
-      grid-template-columns: 1fr 1.3fr;
-      align-items: center;
+    .contacto__grid {
+      grid-template-columns: 1fr 1fr;
       gap: 6rem;
     }
   }

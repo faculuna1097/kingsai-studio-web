@@ -1,0 +1,139 @@
+---
+// "Abierta ahora · cierra a las 20:00". Se calcula en el navegador con la hora
+// de Argentina, a partir de los horarios de la base. No conoce feriados.
+import type { Horario } from '../lib/data';
+
+interface Props {
+  horarios: Horario[];
+  class?: string;
+}
+
+const { horarios, class: className } = Astro.props;
+const datos = horarios.map(({ days, opens, closes }) => ({ days, opens, closes }));
+---
+
+{
+  datos.length > 0 && (
+    <p class:list={['estado', className]} data-estado={JSON.stringify(datos)}>
+      <span class="estado__dot" aria-hidden="true" />
+      <span data-estado-texto />
+    </p>
+  )
+}
+
+<script>
+  type Franja = { days: string[]; opens: string; closes: string };
+
+  const DIAS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const CORTOS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const NOMBRES = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+
+  const reloj = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+
+  const aMinutos = (hora: string) => {
+    const [h, m] = hora.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  /** Día (0 = domingo) y minuto del día en Pilar, sin importar dónde esté el visitante. */
+  function ahora() {
+    const partes = Object.fromEntries(reloj.formatToParts(new Date()).map((p) => [p.type, p.value]));
+    return { dia: CORTOS.indexOf(partes.weekday), minuto: (Number(partes.hour) % 24) * 60 + Number(partes.minute) };
+  }
+
+  const franjasDel = (datos: Franja[], dia: number) =>
+    datos
+      .filter((f) => f.days.includes(DIAS[dia]))
+      .map((f) => ({ ...f, desde: aMinutos(f.opens), hasta: aMinutos(f.closes) }))
+      .sort((a, b) => a.desde - b.desde);
+
+  function estado(datos: Franja[]) {
+    const { dia, minuto } = ahora();
+    const hoy = franjasDel(datos, dia);
+
+    const abierta = hoy.find((f) => f.desde <= minuto && minuto < f.hasta);
+    if (abierta) return { abierta: true, texto: `Abierta ahora · cierra a las ${abierta.closes}` };
+
+    const despues = hoy.find((f) => f.desde > minuto);
+    if (despues) return { abierta: false, texto: `Cerrada · abre hoy a las ${despues.opens}` };
+
+    for (let i = 1; i <= 7; i++) {
+      const otroDia = (dia + i) % 7;
+      const primera = franjasDel(datos, otroDia)[0];
+      if (primera) {
+        const cuando = i === 1 ? 'mañana' : `el ${NOMBRES[otroDia]}`;
+        return { abierta: false, texto: `Cerrada · abre ${cuando} a las ${primera.opens}` };
+      }
+    }
+    return null;
+  }
+
+  function pintar() {
+    document.querySelectorAll<HTMLElement>('[data-estado]').forEach((el) => {
+      const actual = estado(JSON.parse(el.dataset.estado!));
+      if (!actual) return;
+      el.classList.toggle('is-abierta', actual.abierta);
+      el.classList.add('is-ready');
+      el.querySelector('[data-estado-texto]')!.textContent = actual.texto;
+    });
+
+    // Marca el día de hoy en la lista de horarios.
+    const hoy = DIAS[ahora().dia];
+    document.querySelectorAll<HTMLElement>('[data-dias]').forEach((fila) => {
+      fila.classList.toggle('is-hoy', fila.dataset.dias!.split(',').includes(hoy));
+    });
+  }
+
+  pintar();
+  setInterval(pintar, 60_000);
+</script>
+
+<style>
+  .estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    color: var(--text-muted);
+    font-size: 0.9375rem;
+    letter-spacing: 0.01em;
+  }
+
+  /* Hasta que el script calcula el estado no se muestra nada. */
+  .estado:not(.is-ready) {
+    visibility: hidden;
+  }
+
+  .estado.is-abierta {
+    color: var(--light);
+  }
+
+  .estado__dot {
+    flex: none;
+    width: 0.5rem;
+    height: 0.5rem;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+  }
+
+  .is-abierta .estado__dot {
+    border-color: var(--open);
+    background: var(--open);
+    animation: latido 2.4s var(--ease-out) infinite;
+  }
+
+  @keyframes latido {
+    0% {
+      box-shadow: 0 0 0 0 oklch(0.8 0.17 150 / 0.55);
+    }
+    70%,
+    100% {
+      box-shadow: 0 0 0 0.5rem oklch(0.8 0.17 150 / 0);
+    }
+  }
+</style>

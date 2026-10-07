@@ -13,6 +13,14 @@ interface Props {
 const { title, description, jsonLd } = Astro.props;
 const canonical = new URL(Astro.url.pathname, Astro.site);
 const year = new Date().getFullYear();
+
+// Mismo orden que las secciones de la home.
+const nav = [
+  { id: 'nosotros', label: 'Nosotros' },
+  { id: 'servicios', label: 'Servicios' },
+  { id: 'barberos', label: 'Barberos' },
+  { id: 'contacto', label: 'Contacto' },
+];
 ---
 
 <!doctype html>
@@ -41,12 +49,13 @@ const year = new Date().getFullYear();
       <div class="site-header__inner wrap">
         <a class="site-header__brand" href="/" aria-label={`${SITE.name}, inicio`}>
           <Image src={logo} alt="" width={36} height={36} densities={[1, 2, 3]} loading="eager" />
-          <span>{SITE.name}</span>
         </a>
         <nav class="site-header__nav" aria-label="Principal">
-          <a class="link desktop-only" href="/#servicios">Servicios</a>
-          <a class="link desktop-only" href="/#equipo">Equipo</a>
-          <a class="link desktop-only" href="/#ubicacion">Ubicación</a>
+          {nav.map((item) => (
+            <a class="site-header__link" href={`/#${item.id}`} data-nav={item.id}>
+              {item.label}
+            </a>
+          ))}
           <a class="site-header__cta" href={bookingUrl('header')}>Reservar</a>
         </nav>
       </div>
@@ -93,6 +102,30 @@ const year = new Date().getFullYear();
       } else {
         bar?.classList.add('is-visible');
       }
+
+      // El link de la sección que está en el centro de la pantalla se enciende.
+      const links = [...document.querySelectorAll<HTMLAnchorElement>('[data-nav]')];
+      const sections = links
+        .map((link) => document.getElementById(link.dataset.nav!))
+        .filter((s): s is HTMLElement => s !== null);
+      const visibles = new Set<string>();
+
+      const marcar = () => {
+        const actual = sections.find((s) => visibles.has(s.id))?.id;
+        links.forEach((link) => {
+          if (link.dataset.nav === actual) link.setAttribute('aria-current', 'true');
+          else link.removeAttribute('aria-current');
+        });
+      };
+
+      const spy = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => (e.isIntersecting ? visibles.add(e.target.id) : visibles.delete(e.target.id)));
+          marcar();
+        },
+        { rootMargin: '-45% 0px -50% 0px' },
+      );
+      sections.forEach((s) => spy.observe(s));
     </script>
   </body>
 </html>
@@ -135,13 +168,18 @@ const year = new Date().getFullYear();
     height: var(--header-h);
   }
 
+  .site-header__inner {
+    gap: 1rem;
+  }
+
+  /* El logo es el botón de inicio: 44 px de área táctil. */
   .site-header__brand {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-family: var(--font-display);
-    font-size: 1.125rem;
-    text-decoration: none;
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-left: -0.25rem;
   }
 
   .site-header__brand img {
@@ -150,24 +188,81 @@ const year = new Date().getFullYear();
     border-radius: 2px;
   }
 
+  /* En celular los cuatro links entran en la barra: el tamaño y el espacio se ajustan al ancho. */
   .site-header__nav {
     display: flex;
     align-items: center;
-    gap: 1.75rem;
-    font-size: 0.9375rem;
+    gap: clamp(0.875rem, 4vw, 2rem);
+    min-width: 0;
+    /* Aire para que el overflow no recorte el foco de teclado. */
+    padding: 0.5rem 0.375rem;
+    margin-right: -0.375rem;
+    font-size: clamp(0.8125rem, 3.6vw, 0.9375rem);
+    /* En pantallas de menos de 360 px los links se deslizan en vez de desbordarse. */
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
-  .site-header__nav .link {
-    text-decoration-line: underline;
-    text-decoration-color: transparent;
+  .site-header__nav::-webkit-scrollbar {
+    display: none;
   }
 
-  .site-header__nav .link:hover {
-    text-decoration-color: var(--light);
+  .site-header__link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    color: oklch(0.97 0.004 255 / 0.82);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.3s;
+  }
+
+  /* Debajo del link, un tubo de luz chiquito: tenue al pasar, encendido en la sección actual. */
+  .site-header__link::after {
+    position: absolute;
+    right: 0;
+    bottom: 0.55rem;
+    left: 0;
+    height: 1px;
+    background: var(--light);
+    content: '';
+    opacity: 0;
+    transform: scaleX(0.4);
+    transition:
+      opacity 0.35s var(--ease-out),
+      transform 0.45s var(--ease-out),
+      box-shadow 0.35s var(--ease-out);
+  }
+
+  .site-header__link:hover,
+  .site-header__link[aria-current] {
+    color: var(--light);
+  }
+
+  .site-header__link:hover::after {
+    opacity: 0.45;
+    transform: scaleX(1);
+  }
+
+  .site-header__link[aria-current]::after {
+    opacity: 1;
+    transform: scaleX(1);
+    box-shadow: 0 0 8px oklch(1 0 0 / 0.7);
+  }
+
+  /* En celular reservar va en la barra fija de abajo. */
+  .site-header__cta {
+    display: none;
+  }
+
+  @media (min-width: 56rem) {
+    .site-header__cta {
+      display: inline-flex;
+    }
   }
 
   .site-header__cta {
-    display: inline-flex;
     align-items: center;
     min-height: 2.75rem;
     padding: 0 1.125rem;
@@ -185,16 +280,6 @@ const year = new Date().getFullYear();
     border-color: var(--light);
     background: var(--light);
     color: var(--night);
-  }
-
-  .desktop-only {
-    display: none;
-  }
-
-  @media (min-width: 56rem) {
-    .desktop-only {
-      display: inline-flex;
-    }
   }
 
   .site-footer {

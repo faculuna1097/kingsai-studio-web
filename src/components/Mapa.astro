@@ -1,0 +1,235 @@
+---
+// Mapa propio en grafito: calles blancas como los tubos y el destello rojo en el local.
+// Usa MapLibre con los mapas libres de OpenFreeMap (sin clave). Se carga recién
+// cuando el mapa está por entrar en pantalla; mientras tanto se ve el destello solo.
+import Sparkle from './Sparkle.astro';
+import { SITE } from '../config';
+
+interface Props {
+  lat: number;
+  lng: number;
+}
+
+const { lat, lng } = Astro.props;
+---
+
+<div class="mapa" data-mapa data-lat={lat} data-lng={lng}>
+  <div class="mapa__canvas" data-mapa-canvas></div>
+  <div class="mapa__espera" aria-hidden="true">
+    <Sparkle class="mapa__destello" />
+  </div>
+  <template data-mapa-pin>
+    <div class="mapa__pin" aria-hidden="true">
+      <Sparkle class="mapa__destello" />
+      <span class="mapa__nombre">{SITE.name}</span>
+    </div>
+  </template>
+</div>
+
+<script>
+  // Solo la URL: la hoja de estilos se pide recién al montar el mapa.
+  import cssMapa from 'maplibre-gl/dist/maplibre-gl.css?url';
+
+  const ESTILO = 'https://tiles.openfreemap.org/styles/positron';
+
+  function cargarCss() {
+    return new Promise((resolve, reject) => {
+      const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: cssMapa });
+      link.onload = resolve;
+      link.onerror = reject;
+      document.head.append(link);
+    });
+  }
+
+  const C = {
+    fondo: '#121519',
+    agua: '#090b0e',
+    verde: '#161a1e',
+    edificio: '#1b1f24',
+    borde: '#262b31',
+    texto: '#aab0b9',
+  };
+  const calle = (alpha: number) => `rgba(244, 245, 247, ${alpha})`;
+
+  /** Pasa el estilo claro de OpenFreeMap a la paleta del local. Solo cambia colores. */
+  function aGrafito(estilo: { layers: any[] }) {
+    for (const capa of estilo.layers) {
+      const { id, type } = capa;
+      const paint = (capa.paint ??= {});
+
+      if (type === 'background') paint['background-color'] = C.fondo;
+      else if (type === 'fill') {
+        paint['fill-color'] = id.includes('water') ? C.agua : id === 'building' ? C.edificio : C.verde;
+        if ('fill-outline-color' in paint) paint['fill-outline-color'] = id === 'building' ? C.borde : C.fondo;
+      } else if (type === 'line') {
+        if (capa['source-layer'] !== 'transportation') paint['line-color'] = id === 'waterway' ? C.agua : calle(0.1);
+        else if (id.includes('casing')) paint['line-color'] = C.fondo;
+        else if (id.includes('motorway')) paint['line-color'] = calle(0.7);
+        else if (id.includes('major')) paint['line-color'] = calle(0.5);
+        else if (id.includes('minor')) paint['line-color'] = calle(0.3);
+        else if (id.includes('rail')) paint['line-color'] = calle(0.12);
+        else paint['line-color'] = calle(0.16);
+      } else if (type === 'symbol') {
+        if (id.includes('shield') || id === 'airport') {
+          (capa.layout ??= {}).visibility = 'none';
+          continue;
+        }
+        paint['text-color'] = C.texto;
+        paint['text-halo-color'] = C.fondo;
+        paint['text-halo-width'] = 1.2;
+      }
+    }
+    return estilo;
+  }
+
+  async function montar(el: HTMLElement) {
+    const lat = Number(el.dataset.lat);
+    const lng = Number(el.dataset.lng);
+
+    const [{ default: maplibregl }, estilo] = await Promise.all([
+      import('maplibre-gl'),
+      fetch(ESTILO).then((r) => r.json()),
+      cargarCss(),
+    ]);
+
+    const map = new maplibregl.Map({
+      container: el.querySelector<HTMLElement>('[data-mapa-canvas]')!,
+      style: aGrafito(estilo),
+      center: [lng, lat],
+      zoom: 15.5,
+      attributionControl: { compact: true },
+      cooperativeGestures: true,
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false,
+      locale: {
+        'CooperativeGesturesHandler.WindowsHelpText': 'Usá Ctrl + rueda para hacer zoom',
+        'CooperativeGesturesHandler.MacHelpText': 'Usá ⌘ + rueda para hacer zoom',
+        'CooperativeGesturesHandler.MobileHelpText': 'Usá dos dedos para mover el mapa',
+        'NavigationControl.ZoomIn': 'Acercar',
+        'NavigationControl.ZoomOut': 'Alejar',
+        'AttributionControl.ToggleAttribution': 'Ver créditos del mapa',
+      },
+    });
+    map.touchZoomRotate.disableRotation();
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+
+    const plantilla = el.querySelector<HTMLTemplateElement>('[data-mapa-pin]')!;
+    const pin = plantilla.content.firstElementChild!.cloneNode(true) as HTMLElement;
+    new maplibregl.Marker({ element: pin }).setLngLat([lng, lat]).addTo(map);
+
+    map.once('load', () => el.classList.add('is-ready'));
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-mapa]').forEach((el) => {
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        io.disconnect();
+        // Si algo falla (sin conexión, sin WebGL) queda el destello y el botón de Google Maps.
+        montar(el).catch(() => {});
+      },
+      { rootMargin: '400px 0px' },
+    );
+    io.observe(el);
+  });
+</script>
+
+<style>
+  .mapa {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: #121519;
+  }
+
+  .mapa__canvas {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* Mientras carga: el destello en el lugar exacto donde va a quedar el pin. */
+  .mapa__espera {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    transition: opacity 0.6s var(--ease-out);
+  }
+
+  .mapa:global(.is-ready) .mapa__espera {
+    opacity: 0;
+  }
+
+  .mapa :global(.mapa__destello) {
+    width: 1.75rem;
+    height: 1.75rem;
+    color: var(--rose);
+    filter: drop-shadow(0 0 6px oklch(0.6 0.19 27 / 0.7));
+  }
+
+  .mapa :global(.mapa__pin) {
+    display: grid;
+    place-items: center;
+  }
+
+  .mapa :global(.mapa__nombre) {
+    position: absolute;
+    top: calc(100% + 0.375rem);
+    padding: 0.125rem 0.5rem;
+    background: var(--night);
+    border: 1px solid var(--line);
+    color: var(--light);
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
+  /* Controles de MapLibre en la misma línea fina del resto de la web. */
+  .mapa :global(.maplibregl-ctrl-group) {
+    border: 1px solid var(--line-strong);
+    border-radius: 0;
+    background: var(--night);
+    box-shadow: none;
+  }
+
+  .mapa :global(.maplibregl-ctrl-group button) {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .mapa :global(.maplibregl-ctrl-group button + button) {
+    border-top: 1px solid var(--line);
+  }
+
+  .mapa :global(.maplibregl-ctrl-icon) {
+    filter: invert(1);
+  }
+
+  .mapa :global(.maplibregl-ctrl-attrib) {
+    background: oklch(0.145 0.008 255 / 0.85);
+    color: var(--text-muted);
+  }
+
+  .mapa :global(.maplibregl-ctrl-attrib a) {
+    color: var(--light);
+  }
+
+  .mapa :global(.maplibregl-ctrl-attrib-button) {
+    filter: invert(1);
+  }
+
+  .mapa :global(.maplibregl-cooperative-gesture-screen) {
+    background: oklch(0.145 0.008 255 / 0.75);
+    color: var(--light);
+    font-family: var(--font-body);
+  }
+
+  @media (min-width: 56rem) {
+    .mapa {
+      aspect-ratio: 16 / 10;
+    }
+  }
+</style>

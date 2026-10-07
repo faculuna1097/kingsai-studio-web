@@ -24,8 +24,8 @@ export const SITE = {
     region: 'Provincia de Buenos Aires',
     country: 'AR',
   },
-  // [COMPLETAR] coordenadas exactas desde la ficha de Google.
-  geo: null as { lat: number; lng: number } | null,
+  // Coordenadas del pin de Google Maps (oct-2026).
+  geo: { lat: -34.44224970993767, lng: -58.754947041102305 } as { lat: number; lng: number } | null,
   // Sin WhatsApp por ahora. Formato internacional sin espacios, ej. 5491123456789.
   whatsapp: null as string | null,
   instagram: 'https://www.instagram.com/kingsai.studio/' as string | null,

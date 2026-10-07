@@ -10,6 +10,16 @@ La web está publicada en **Vercel** (`vercel.json`: framework Astro, salida `di
 - **Vercel:** las variables `SUPABASE_URL` y `SUPABASE_ANON_KEY` ya están cargadas y el build lee las vistas.
 - **Actualización automática:** funciona desde el 2026-10-07 para servicios y barberos (sección 2). Los horarios se suman con la sección 3.
 
+### Qué hace la web con esos datos
+
+- **Horarios:** se listan en Contacto (con el día de hoy marcado) y alimentan el estado "Abierta ahora / Cerrada · abre…" del inicio y de Contacto. El estado se calcula en el navegador con la hora de Argentina. **No conoce feriados ni vacaciones**: esos días puede decir "Abierta". Sin horarios en la base, el estado no aparece.
+- **Barberos:** hoy `web_barberos` trae solo el nombre, así que cada cuadro de "Quién te corta" muestra la inicial. Para mostrar las fotos hay que (1) sumar la columna de la foto a la vista y (2) leerla en `getBarberos()` de `src/lib/data.ts`, que hoy pone `fotoUrl: null`. La página ya muestra la foto dentro del cuadro cuando existe. Lo mismo vale para `rol` e `instagram`.
+
+### Servicios externos que usa la página
+
+- **Mapa (Nosotros → Cómo llegar):** MapLibre (`maplibre-gl`, en el bundle) con los mapas de **OpenFreeMap** (`tiles.openfreemap.org`, estilo `positron`, sin clave ni cuenta, uso comercial permitido). Los colores se pasan a grafito en `src/components/Mapa.astro`. Se descarga recién cuando el visitante llega al mapa. Si OpenFreeMap no responde, queda el destello y el botón "Abrir en Google Maps". El pin usa `SITE.geo` de `src/config.ts`.
+- **Reservas:** Setmore (`bookingUrl()` en `src/config.ts`).
+
 ## 1. Variables de entorno en Vercel
 
 Settings → Environment Variables:
