@@ -11,18 +11,41 @@ import { getServicios, getBarberos, formatPrecio } from '../lib/data';
 const servicios = await getServicios();
 const barberos = await getBarberos();
 
-// [COMPLETAR] Preguntas sin respuesta confirmada: ¿atienden sin turno?, medios de pago,
-// estacionamiento, cortes para chicos. Se muestran solo las que tienen respuesta.
+// Respuestas confirmadas por la barbería (oct-2026). Sirven también para la ficha de Google.
 const faq = [
   {
     q: '¿Cómo saco turno?',
     a: 'Online, desde el botón Reservar: elegís el servicio, el barbero y el horario que te queden cómodos.',
   },
   {
+    q: '¿Atienden sin turno?',
+    a: 'Sí. Con turno te asegurás el horario.',
+  },
+  {
+    q: '¿Puedo elegir barbero?',
+    a: 'Sí, lo elegís al reservar.',
+  },
+  {
+    q: '¿Cómo cancelo o cambio un turno?',
+    a: 'Desde el link del mail de confirmación que te llega al reservar.',
+  },
+  {
+    q: '¿Qué medios de pago aceptan?',
+    a: 'Efectivo, Mercado Pago y tarjeta.',
+  },
+  {
+    q: '¿Hacen diseños o color?',
+    a: 'No, no hacemos diseños, tintura ni decoloración.',
+  },
+  {
+    q: '¿Venden productos?',
+    a: 'Sí, los tenemos en el local.',
+  },
+  {
     q: '¿Dónde queda la barbería?',
     a: `En ${FULL_ADDRESS}.`,
   },
-].filter((item) => item.a);
+];
 
 const jsonLd = {
   '@context': 'https://schema.org',
