@@ -16,7 +16,20 @@ QR / boca en boca      ─┘   (link con UTM)         └─ origen de cada tur
 ## Fase 0 — Kickoff y accesos (semana 1)
 - **Brief:** nombre exacto (como figura en el cartel), dirección, WhatsApp, horarios y feriados, servicios con precio y duración, barberos, medios de pago, diferenciales, barrio principal y 2-3 vecinos a los que apuntar, y 3-5 competidores que hoy salen arriba en Maps.
 - **Cuentas a nombre del cliente:** la cuenta de Google de la barbería es la propietaria de la ficha y el portfolio de Meta Business es de ellos; vos entrás como administrador. Nunca las crees en tu cuenta personal.
-- **Ficha existente:** fijate quién es el propietario. Si no tiene dueño, se reclama; si la tiene otra persona, se usa "Solicitar acceso" (Google le avisa al dueño actual y puede tardar días). Buscá y reportá duplicados.
+- **Ficha existente: se reclama, no se crea una nueva.** Crear otra para el mismo local genera un duplicado: Google lo fusiona o suspende, el posicionamiento se parte y se pierden reseñas, fotos y antigüedad. Reclamarla da el mismo control que "empezar de cero".
+  1. **Cuenta de Google de la barbería** (ej. `barberia.nombre@gmail.com`):
+     - si el dueño ya tiene una, se usa esa;
+     - si no, se crea ahora a nombre del negocio, con el celular y un email de recuperación del dueño. El dueño guarda la contraseña.
+  2. **Reclamo desde esa cuenta:** buscar la barbería en Google Maps → "¿Es el propietario de esta empresa?" / "Reclamar este perfil". Google muestra cuál de estos casos aplica:
+     - **Sin dueño:** se verifica (video, llamada o SMS, según lo que ofrezca Google) y queda reclamada.
+     - **Dueño conocido** (ex empleado, dueño anterior, familiar): Google muestra parte de su email (`j•••@gmail.com`). Se le pide que transfiera la propiedad a la cuenta de la barbería.
+     - **Dueño desconocido:** se manda "Solicitar acceso" desde Google. Esa persona tiene unos días para responder; si no contesta, Google suele habilitar el reclamo. Guardar la confirmación del pedido.
+  3. **Estructura de permisos:**
+     - la cuenta de la barbería queda como **propietaria principal**;
+     - vos entrás como **Administrador** (Configuración → Gestión de perfil → Personas y acceso), nunca con tu cuenta como propietaria;
+     - se saca a cualquier usuario que nadie reconozca.
+  4. **Revisión completa:** cargar todos los datos de nuevo con el Kit de Google, y buscar y reportar duplicados.
+  - **Lo que no se borra ni siendo dueño:** las reseñas y las fotos que subió el público; solo se pueden responder o reportar si violan las políticas.
 - **Línea base,** para poder mostrar resultados:
   - reseñas: cantidad y promedio;
   - métricas de la ficha de los últimos 6 meses, con los términos de búsqueda;
@@ -153,7 +166,8 @@ Reporte de una página y 30 minutos de reunión. Expectativa: las reseñas y la 
 - El precio sale de horas × tu tarifa, en USD o en pesos con ajuste trimestral. Los costos de terceros (hosting, mensajes de la API de WhatsApp) los paga el cliente.
 
 ## Ejecución al aprobar
-1. **Kit de Google** → `C:\Users\facul\kingsai-studio-web\clientes\barberia\kit-google.md` y `tarjeta-qr.html` imprimible. Lo que falte del brief queda marcado `[COMPLETAR]`.
+0. **Actualizar el plan en el repo:** copiar este plan a `docs/plan-marketing-barberia.md`, commit y push a `main` (https://github.com/faculuna1097/kingsai-studio-web).
+1. **Kit de Google** (su primera sección es el paso a paso del reclamo de Fase 0) → `C:\Users\facul\kingsai-studio-web\clientes\barberia\kit-google.md` y `tarjeta-qr.html` imprimible. Lo que falte del brief queda marcado `[COMPLETAR]`.
 2. **Automatizaciones:**
    - pedir acceso a la carpeta del repo de la app;
    - relevar stack y modelo de datos;
