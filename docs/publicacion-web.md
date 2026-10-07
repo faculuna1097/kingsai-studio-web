@@ -173,7 +173,8 @@ begin
   -- Solo encola el pedido: el POST sale después, fuera de esta transacción.
   -- Cualquier error acá se reduce a un warning y no frena la escritura de la app.
   begin
-    perform net.http_post(url := v_url, body := '{}'::jsonb);
+    -- Vercel tarda más de 5 s (el default de pg_net) en responder al hook
+    perform net.http_post(url := v_url, body := '{}'::jsonb, timeout_milliseconds := 30000);
   exception when others then
     raise warning 'web_deploy_kingsai: no se pudo encolar el deploy (%)', sqlerrm;
   end;
@@ -241,6 +242,7 @@ order by 1, 2;
    ```
 
    - **Bien:** `status_code` 201 (o 200) y en `respuesta` un JSON con `"job"` y `"state":"PENDING"`.
+   - **`error_msg` "Timeout of … ms reached" con el deploy creado igual:** Vercel recibió el pedido, pero respondió después del límite de pg_net. La función usa 30 s por eso; si vuelve a pasar, subir `timeout_milliseconds`.
    - **`status_code` 404:** el hook no existe o la URL está mal. Revisar el secreto.
    - **Sin filas nuevas:** el trigger no disparó. Revisar que el servicio sea de Kingsai y esté activo, y los warnings en Supabase (Logs → Postgres).
 3. **En Vercel:** pestaña **Deployments**. Tiene que aparecer un deploy nuevo de `main` que diga que vino del deploy hook `supabase-datos`. Cuando termine, el precio nuevo tiene que estar en la web.
