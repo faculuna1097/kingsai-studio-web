@@ -26,10 +26,9 @@ export const SITE = {
   },
   // [COMPLETAR] coordenadas exactas desde la ficha de Google.
   geo: null as { lat: number; lng: number } | null,
-  // [COMPLETAR] formato internacional sin espacios, ej. 5491123456789.
+  // Sin WhatsApp por ahora. Formato internacional sin espacios, ej. 5491123456789.
   whatsapp: null as string | null,
-  // [COMPLETAR]
-  instagram: null as string | null,
+  instagram: 'https://www.instagram.com/kingsai.studio/' as string | null,
   // [COMPLETAR] link corto de la ficha ("Pedir reseñas" / "Compartir").
   googleMaps: 'https://www.google.com/maps/search/?api=1&query=Kingsai+Studio+Golf+Club+Necochea+3061+Pilar',
   // [COMPLETAR] Días en formato schema.org y horario 24 h.
