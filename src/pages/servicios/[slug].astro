@@ -1,0 +1,141 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Arrow from '../../components/Arrow.astro';
+import { SITE, bookingUrl } from '../../config';
+import { getServicios, formatPrecio, type Servicio } from '../../lib/data';
+
+export async function getStaticPaths() {
+  const servicios = await getServicios();
+  return servicios.map((servicio) => ({ params: { slug: servicio.slug }, props: { servicio } }));
+}
+
+const { servicio } = Astro.props as { servicio: Servicio };
+const otros = (await getServicios()).filter((s) => s.slug !== servicio.slug);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Service',
+  name: servicio.nombre,
+  description: servicio.descripcion ?? undefined,
+  areaServed: SITE.address.locality,
+  provider: { '@type': 'HairSalon', name: SITE.name, url: Astro.site?.toString() },
+  ...(servicio.precio != null && {
+    offers: { '@type': 'Offer', price: servicio.precio, priceCurrency: 'ARS' },
+  }),
+};
+---
+
+<Layout
+  title={`${servicio.nombre} en Pilar | ${SITE.name}`}
+  description={`${servicio.nombre} en ${SITE.name}, barbería en ${SITE.address.street}, Pilar. ${servicio.descripcion ?? ''} Reservá online.`}
+  jsonLd={jsonLd}
+>
+  <section class="servicio-page">
+    <div class="wrap">
+      <a class="link back" href="/#servicios">Todos los servicios</a>
+      <hr class="tube" />
+      <h1>{servicio.nombre}</h1>
+      <p class="sub">en Pilar, Golf Club</p>
+
+      <dl class="datos">
+        <div>
+          <dt>Precio</dt>
+          <dd>{formatPrecio(servicio.precio)}</dd>
+        </div>
+      </dl>
+
+      {servicio.descripcion && <p class="lede descripcion">{servicio.descripcion}</p>}
+
+      <a class="btn btn--solid cta" href={bookingUrl(`servicio_${servicio.slug}`)}>
+        Reservar {servicio.nombre.toLowerCase()} <Arrow />
+      </a>
+
+      {
+        otros.length > 0 && (
+          <nav class="otros" aria-label="Otros servicios">
+            <p>Otros servicios</p>
+            <ul role="list">
+              {otros.map((s) => (
+                <li>
+                  <a class="link" href={`/servicios/${s.slug}`}>
+                    {s.nombre}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        )
+      }
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .servicio-page {
+    padding-block: calc(var(--header-h) + 3rem) 6rem;
+  }
+
+  .back {
+    color: var(--text-muted);
+    font-size: 0.9375rem;
+  }
+
+  .tube {
+    width: 4.5rem;
+    margin-block: 2.5rem 1.75rem;
+  }
+
+  h1 {
+    font-size: clamp(3.25rem, 15vw, 6rem);
+    font-variation-settings: 'opsz' 96;
+    line-height: 0.95;
+  }
+
+  .sub {
+    margin-top: 1rem;
+    color: var(--text-muted);
+  }
+
+  .datos {
+    display: flex;
+    gap: 3rem;
+    margin: 3rem 0 0;
+    padding-block: 1.5rem;
+    border-block: 1px solid var(--line);
+  }
+
+  .datos dt {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+
+  .datos dd {
+    margin: 0.25rem 0 0;
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .descripcion {
+    margin-top: 2rem;
+  }
+
+  .cta {
+    margin-top: 2.5rem;
+  }
+
+  .otros {
+    margin-top: 5rem;
+    color: var(--text-muted);
+  }
+
+  .otros ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.75rem;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    list-style: none;
+    color: var(--light);
+  }
+</style>

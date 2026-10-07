@@ -1,0 +1,838 @@
+---
+import { Image } from 'astro:assets';
+import Layout from '../layouts/Layout.astro';
+import Sparkle from '../components/Sparkle.astro';
+import Arrow from '../components/Arrow.astro';
+import localFoto from '../assets/local.webp';
+import logo from '../assets/logo.webp';
+import { SITE, FULL_ADDRESS, bookingUrl } from '../config';
+import { getServicios, getBarberos, formatPrecio } from '../lib/data';
+
+const servicios = await getServicios();
+const barberos = await getBarberos();
+
+// [COMPLETAR] Preguntas sin respuesta confirmada: ¿atienden sin turno?, medios de pago,
+// estacionamiento, cortes para chicos. Se muestran solo las que tienen respuesta.
+const faq = [
+  {
+    q: '¿Cómo saco turno?',
+    a: 'Online, desde el botón Reservar: elegís el servicio, el barbero y el horario que te queden cómodos.',
+  },
+  {
+    q: '¿Dónde queda la barbería?',
+    a: `En ${FULL_ADDRESS}.`,
+  },
+].filter((item) => item.a);
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'HairSalon',
+  name: SITE.name,
+  url: Astro.site?.toString(),
+  image: new URL('/media/hero-poster.jpg', Astro.site).toString(),
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: SITE.address.street,
+    postalCode: SITE.address.postalCode,
+    addressLocality: SITE.address.locality,
+    addressRegion: SITE.address.region,
+    addressCountry: SITE.address.country,
+  },
+  ...(SITE.geo && { geo: { '@type': 'GeoCoordinates', latitude: SITE.geo.lat, longitude: SITE.geo.lng } }),
+  ...(SITE.whatsapp && { telephone: `+${SITE.whatsapp}` }),
+  ...(SITE.hours.length && {
+    openingHoursSpecification: SITE.hours.map((h) => ({
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: h.days,
+      opens: h.opens,
+      closes: h.closes,
+    })),
+  }),
+  sameAs: [SITE.instagram, SITE.googleMaps].filter(Boolean),
+  makesOffer: servicios.map((s) => ({
+    '@type': 'Offer',
+    itemOffered: { '@type': 'Service', name: s.nombre },
+    ...(s.precio != null && { price: s.precio, priceCurrency: 'ARS' }),
+  })),
+};
+---
+
+<Layout
+  title={`Barbería en Pilar | ${SITE.name}`}
+  description={`${SITE.name}: cortes, fade y barba en ${SITE.address.street}, Pilar. Reservá tu turno online.`}
+  jsonLd={jsonLd}
+>
+  <!-- Hero -->
+  <section class="hero" data-hero>
+    <div class="hero__media">
+      <video
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="auto"
+        poster="/media/hero-poster.jpg"
+        aria-label="Recorrido por el local de Kingsai Studio"
+        data-hero-video
+      >
+        <source src="/media/hero.mp4" type="video/mp4" />
+      </video>
+      <button class="hero__toggle" type="button" aria-pressed="false" data-video-toggle>
+        <span class="visually-hidden" data-video-label>Pausar video</span>
+        <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25">
+          <path d="M9 6v12M15 6v12" />
+        </svg>
+        <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.25">
+          <path d="M8 5.5v13l11-6.5z" />
+        </svg>
+      </button>
+    </div>
+
+    <div class="hero__content">
+      <hr class="tube hero__tube" />
+      <h1 class="hero__title">Kingsai<br />Studio</h1>
+      <p class="hero__sub">Barbería en Pilar, Golf Club</p>
+      <div class="hero__actions">
+        <a class="btn btn--solid" href={bookingUrl('hero')}>Reservar turno <Arrow /></a>
+        <a class="link" href="#servicios">Ver servicios y precios</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- El local -->
+  <section class="local section">
+    <div class="wrap local__grid">
+      <p class="local__statement">
+        Paredes grafito, techo negro y tubos de luz blanca. Una luz que no perdona: por eso cada línea sale
+        prolija.
+      </p>
+      <figure class="local__figure">
+        <Image
+          src={localFoto}
+          alt="Interior de Kingsai Studio: sillones con capas a rayas, espejos altos y tubos de luz blanca cruzando el techo negro"
+          widths={[480, 729]}
+          sizes="(min-width: 56rem) 45vw, 100vw"
+        />
+        <figcaption>{SITE.address.street}, Pilar</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- Servicios -->
+  <section class="servicios section" id="servicios" aria-labelledby="servicios-titulo">
+    <div class="wrap">
+      <h2 id="servicios-titulo">Servicios</h2>
+      <ul class="servicios__list" role="list">
+        {
+          servicios.map((s) => (
+            <li class="servicio">
+              <a class="servicio__link" href={`/servicios/${s.slug}`}>
+                <span class="servicio__nombre">{s.nombre}</span>
+                <span class="servicio__precio">{formatPrecio(s.precio)}</span>
+                {s.descripcion && <span class="servicio__meta">{s.descripcion}</span>}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <a class="btn servicios__cta" href={bookingUrl('servicios')}>Elegir horario <Arrow /></a>
+    </div>
+  </section>
+
+  <!-- Equipo -->
+  {
+    barberos.length > 0 && (
+      <section class="equipo section" id="equipo" aria-labelledby="equipo-titulo">
+        <div class="wrap">
+          <h2 id="equipo-titulo">Quién te corta</h2>
+        </div>
+        <ul class="equipo__list" role="list">
+          {barberos.map((b) => (
+            <li class="barbero">
+              <div class="barbero__foto">
+                {b.fotoUrl ? (
+                  <img src={b.fotoUrl} alt={`${b.nombre}, barbero de ${SITE.name}`} loading="lazy" />
+                ) : (
+                  <span class="barbero__inicial" aria-hidden="true">
+                    {b.nombre.charAt(0)}
+                    <Sparkle class="barbero__sparkle" />
+                  </span>
+                )}
+              </div>
+              <p class="barbero__nombre">{b.nombre}</p>
+              {b.rol && <p class="barbero__rol">{b.rol}</p>}
+              {b.instagram && (
+                <a class="link barbero__ig" href={b.instagram} rel="noopener">
+                  Ver trabajos
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
+
+  <!-- Raíz tattoo -->
+  <section class="raiz section" aria-labelledby="raiz-titulo">
+    <div class="wrap raiz__grid">
+      <div class="raiz__logo">
+        <Image src={logo} alt="Logo de Kingsai Studio: la Virgen entre dos rosas rojas, en estilo tattoo tradicional" width={486} />
+      </div>
+      <div class="raiz__texto">
+        <h2 id="raiz-titulo">
+          Raíz tattoo
+          <Sparkle class="raiz__sparkle" />
+        </h2>
+        <p class="lede">
+          La marca viene del tattoo tradicional: la Virgen, las rosas rojas, los destellos. En las paredes cuelga flash
+          enmarcado. El resto es silencio, buena luz y oficio.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Preguntas -->
+  <section class="faq section" aria-labelledby="faq-titulo">
+    <div class="wrap faq__grid">
+      <h2 id="faq-titulo">Preguntas</h2>
+      <div class="faq__list">
+        {
+          faq.map((item) => (
+            <details class="faq__item">
+              <summary>
+                {item.q}
+                <span class="faq__icon" aria-hidden="true" />
+              </summary>
+              <p>{item.a}</p>
+            </details>
+          ))
+        }
+      </div>
+    </div>
+  </section>
+
+  <!-- Ubicación -->
+  <section class="ubicacion section" id="ubicacion" aria-labelledby="ubicacion-titulo">
+    <div class="wrap ubicacion__grid">
+      <div>
+        <h2 id="ubicacion-titulo">Dónde estamos</h2>
+        <address class="ubicacion__address">
+          {SITE.address.street}<br />
+          {SITE.address.postalCode} {SITE.address.locality}, {SITE.address.region}
+        </address>
+        {
+          SITE.hours.length > 0 && (
+            <dl class="ubicacion__hours">
+              {SITE.hours.map((h) => (
+                <div>
+                  <dt>{h.label}</dt>
+                  <dd>
+                    {h.opens} a {h.closes}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )
+        }
+        <div class="ubicacion__actions">
+          <a class="btn" href={SITE.googleMaps} rel="noopener">Cómo llegar <Arrow /></a>
+          {
+            SITE.whatsapp && (
+              <a class="link" href={`https://wa.me/${SITE.whatsapp}`} rel="noopener">
+                Escribinos por WhatsApp
+              </a>
+            )
+          }
+        </div>
+      </div>
+      <div class="ubicacion__map">
+        <iframe
+          title={`Mapa de ${SITE.name}`}
+          src={`https://www.google.com/maps?q=${encodeURIComponent(`${SITE.name}, ${FULL_ADDRESS}`)}&output=embed`}
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script>
+  const video = document.querySelector<HTMLVideoElement>('[data-hero-video]');
+  const toggle = document.querySelector<HTMLButtonElement>('[data-video-toggle]');
+  const label = document.querySelector('[data-video-label]');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function setPaused(paused: boolean) {
+    if (!video || !toggle || !label) return;
+    if (paused) video.pause();
+    else video.play().catch(() => setPaused(true));
+    toggle.setAttribute('aria-pressed', String(paused));
+    label.textContent = paused ? 'Reproducir video' : 'Pausar video';
+  }
+
+  if (reduce.matches) setPaused(true);
+  toggle?.addEventListener('click', () => setPaused(!video?.paused));
+</script>
+
+<style>
+  /* ---------- Hero ---------- */
+  .hero {
+    position: relative;
+    display: grid;
+    align-items: end;
+    min-height: 100svh;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .hero__media {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+  }
+
+  .hero__media video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .hero__media::after {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(to bottom, oklch(0.145 0.008 255 / 0.55), transparent 22%),
+      linear-gradient(to top, var(--night) 4%, oklch(0.145 0.008 255 / 0.7) 38%, transparent 70%);
+    content: '';
+    pointer-events: none;
+  }
+
+  .hero__toggle {
+    position: absolute;
+    z-index: 1;
+    top: calc(var(--header-h) + env(safe-area-inset-top) + 0.75rem);
+    right: var(--gutter);
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border: 1px solid var(--line-strong);
+    background: oklch(0.145 0.008 255 / 0.35);
+    color: var(--light);
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+  }
+
+  .hero__toggle svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+
+  .hero__toggle .icon-play,
+  .hero__toggle[aria-pressed='true'] .icon-pause {
+    display: none;
+  }
+
+  .hero__toggle[aria-pressed='true'] .icon-play {
+    display: block;
+  }
+
+  .hero__content {
+    width: min(100% - 2 * var(--gutter), var(--max));
+    margin-inline: auto;
+    padding-bottom: clamp(6.5rem, 18vw, 7.5rem);
+  }
+
+  .hero__tube {
+    width: 4.5rem;
+    margin-bottom: 1.75rem;
+    transform-origin: left;
+    animation: tube-on 1.4s var(--ease-out) 0.2s both;
+  }
+
+  .hero__title {
+    font-size: clamp(4rem, 19vw, 6rem);
+    font-variation-settings: 'opsz' 96;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    animation: focus-in 1.4s var(--ease-out) 0.35s both;
+  }
+
+  .hero__sub {
+    margin-top: 1.25rem;
+    color: var(--text-muted);
+    font-size: 1.0625rem;
+    letter-spacing: 0.02em;
+    animation: focus-in 1.2s var(--ease-out) 0.6s both;
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.75rem;
+    margin-top: 2.25rem;
+    animation: focus-in 1.2s var(--ease-out) 0.75s both;
+  }
+
+  @keyframes tube-on {
+    0% {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+    40% {
+      opacity: 1;
+    }
+    55% {
+      opacity: 0.35;
+    }
+    65%,
+    100% {
+      opacity: 1;
+      transform: scaleX(1);
+    }
+  }
+
+  @keyframes focus-in {
+    from {
+      opacity: 0;
+      filter: blur(10px);
+      transform: translateY(12px);
+    }
+  }
+
+  /* En pantallas anchas el video vertical va en su propio marco, sin estirarse. */
+  @media (min-width: 56rem) {
+    .hero {
+      grid-template-columns: 1fr minmax(0, 28rem);
+      gap: clamp(2rem, 6vw, 6rem);
+      align-items: center;
+      padding: calc(var(--header-h) + 3rem) max(var(--gutter), (100% - var(--max)) / 2) 4rem;
+    }
+
+    .hero__media {
+      position: relative;
+      z-index: 0;
+      inset: auto;
+      grid-column: 2;
+      grid-row: 1;
+      aspect-ratio: 9 / 16;
+      max-height: calc(100svh - var(--header-h) - 7rem);
+      justify-self: end;
+      outline: 1px solid var(--line);
+      outline-offset: 0.75rem;
+    }
+
+    .hero__media::after {
+      background: linear-gradient(to top, oklch(0.145 0.008 255 / 0.4), transparent 40%);
+    }
+
+    .hero__toggle {
+      top: auto;
+      right: 1rem;
+      bottom: 1rem;
+    }
+
+    .hero__content {
+      grid-column: 1;
+      grid-row: 1;
+      width: auto;
+      margin: 0;
+      padding: 0;
+    }
+
+    .hero__title {
+      font-size: clamp(5rem, 9vw, 6rem);
+    }
+  }
+
+  /* ---------- El local ---------- */
+  .local__grid {
+    display: grid;
+    gap: 3rem;
+  }
+
+  .local__statement {
+    max-width: 22ch;
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 6.5vw, 2.75rem);
+    line-height: 1.18;
+    text-wrap: balance;
+  }
+
+  .local__figure {
+    margin: 0;
+  }
+
+  .local__figure img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+  }
+
+  .local__figure figcaption {
+    margin-top: 0.875rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+
+  @media (min-width: 56rem) {
+    .local__grid {
+      grid-template-columns: 1fr 1fr;
+      align-items: end;
+      gap: 6rem;
+    }
+
+    .local__statement {
+      padding-bottom: 4rem;
+    }
+  }
+
+  /* ---------- Servicios ---------- */
+  .servicios {
+    background: var(--graphite);
+  }
+
+  .servicios__list {
+    margin: 3rem 0 0;
+    padding: 0;
+    border-top: 1px solid var(--line);
+    list-style: none;
+  }
+
+  .servicio {
+    position: relative;
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* Al pasar, la línea se enciende como un tubo. */
+  .servicio::after {
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    left: 0;
+    height: 1px;
+    background: var(--light);
+    box-shadow: 0 0 10px oklch(1 0 0 / 0.6);
+    content: '';
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.6s var(--ease-out);
+  }
+
+  .servicio:hover::after,
+  .servicio:focus-within::after {
+    transform: scaleX(1);
+  }
+
+  .servicio__link {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.375rem 1.5rem;
+    align-items: baseline;
+    padding-block: 1.5rem;
+    text-decoration: none;
+  }
+
+  .servicio__nombre {
+    font-family: var(--font-display);
+    font-size: clamp(1.625rem, 6vw, 2.25rem);
+    line-height: 1.1;
+  }
+
+  .servicio__precio {
+    font-size: 1.0625rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .servicio__meta {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    max-width: 60ch;
+    color: var(--text-muted);
+    font-size: 0.9375rem;
+  }
+
+  .servicios__cta {
+    margin-top: 2.5rem;
+  }
+
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .servicio {
+        animation: row-in linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 60%;
+      }
+    }
+  }
+
+  @keyframes row-in {
+    from {
+      opacity: 0.2;
+      transform: translateY(1.25rem);
+    }
+  }
+
+  /* ---------- Equipo ---------- */
+  .equipo__list {
+    display: flex;
+    gap: 1rem;
+    margin: 3rem 0 0;
+    padding: 0 var(--gutter) 0.5rem;
+    overflow-x: auto;
+    list-style: none;
+    scroll-padding-inline: var(--gutter);
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .equipo__list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .barbero {
+    flex: 0 0 min(72vw, 17rem);
+    scroll-snap-align: start;
+  }
+
+  .barbero__foto {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    background: radial-gradient(120% 80% at 50% 0%, var(--wall), var(--graphite) 70%);
+  }
+
+  .barbero__foto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .barbero__inicial {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    color: oklch(0.97 0.004 255 / 0.85);
+    font-family: var(--font-display);
+    font-size: 8rem;
+    font-variation-settings: 'opsz' 96;
+  }
+
+  .barbero__foto :global(.barbero__sparkle) {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 1rem;
+    color: var(--rose);
+  }
+
+  .barbero__nombre {
+    margin-top: 1rem;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+  }
+
+  .barbero__rol {
+    color: var(--text-muted);
+    font-size: 0.9375rem;
+  }
+
+  @media (min-width: 56rem) {
+    .equipo__list {
+      width: min(100% - 2 * var(--gutter), var(--max));
+      margin-inline: auto;
+      padding-inline: 0;
+      overflow: visible;
+    }
+
+    .barbero {
+      flex-basis: 16rem;
+    }
+  }
+
+  /* ---------- Raíz tattoo ---------- */
+  .raiz {
+    border-block: 1px solid var(--line);
+  }
+
+  .raiz__grid {
+    display: grid;
+    gap: 3rem;
+  }
+
+  .raiz__logo {
+    width: min(100%, 22rem);
+    padding: 0.75rem;
+    border: 1px solid var(--line);
+  }
+
+  .raiz__logo img {
+    width: 100%;
+    height: auto;
+  }
+
+  .raiz__texto h2 {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .raiz__texto :global(.raiz__sparkle) {
+    flex: none;
+    width: 1.25rem;
+    margin-top: 0.25em;
+    color: var(--rose);
+  }
+
+  .raiz__texto .lede {
+    margin-top: 1.5rem;
+  }
+
+  @media (min-width: 56rem) {
+    .raiz__grid {
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 6rem;
+    }
+  }
+
+  /* ---------- Preguntas ---------- */
+  .faq__grid {
+    display: grid;
+    gap: 2.5rem;
+  }
+
+  .faq__list {
+    border-top: 1px solid var(--line);
+  }
+
+  .faq__item {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .faq__item summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    min-height: 3.75rem;
+    padding-block: 1rem;
+    font-size: 1.125rem;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .faq__item summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .faq__icon {
+    position: relative;
+    flex: none;
+    width: 0.875rem;
+    height: 0.875rem;
+  }
+
+  .faq__icon::before,
+  .faq__icon::after {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 1px;
+    background: currentColor;
+    content: '';
+    transition: transform 0.35s var(--ease-out);
+  }
+
+  .faq__icon::after {
+    transform: rotate(90deg);
+  }
+
+  .faq__item[open] .faq__icon::after {
+    transform: rotate(0deg);
+  }
+
+  .faq__item p {
+    max-width: 60ch;
+    padding-bottom: 1.5rem;
+    color: var(--text-muted);
+  }
+
+  @media (min-width: 56rem) {
+    .faq__grid {
+      grid-template-columns: 1fr 1.6fr;
+      gap: 6rem;
+    }
+  }
+
+  /* ---------- Ubicación ---------- */
+  .ubicacion {
+    background: var(--graphite);
+  }
+
+  .ubicacion__grid {
+    display: grid;
+    gap: 3rem;
+  }
+
+  .ubicacion__address {
+    margin-top: 1.75rem;
+    font-size: 1.125rem;
+    font-style: normal;
+  }
+
+  .ubicacion__hours {
+    display: grid;
+    gap: 0.25rem;
+    margin: 1.5rem 0 0;
+    color: var(--text-muted);
+  }
+
+  .ubicacion__hours div {
+    display: flex;
+    justify-content: space-between;
+    max-width: 22rem;
+  }
+
+  .ubicacion__hours dd {
+    margin: 0;
+    color: var(--light);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ubicacion__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.75rem;
+    margin-top: 2rem;
+  }
+
+  .ubicacion__map {
+    border: 1px solid var(--line);
+  }
+
+  .ubicacion__map iframe {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border: 0;
+    filter: grayscale(1) invert(0.92) contrast(0.9);
+  }
+
+  @media (min-width: 56rem) {
+    .ubicacion__grid {
+      grid-template-columns: 1fr 1.3fr;
+      align-items: center;
+      gap: 6rem;
+    }
+  }
+</style>

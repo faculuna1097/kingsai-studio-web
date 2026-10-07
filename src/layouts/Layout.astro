@@ -1,0 +1,279 @@
+---
+import '../styles/global.css';
+import { Image } from 'astro:assets';
+import logo from '../assets/logo.webp';
+import { SITE, FULL_ADDRESS, bookingUrl } from '../config';
+
+interface Props {
+  title: string;
+  description: string;
+  jsonLd?: object;
+}
+
+const { title, description, jsonLd } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const year = new Date().getFullYear();
+---
+
+<!doctype html>
+<html lang="es-AR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0d0f12" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" href="/favicon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={new URL('/media/hero-poster.jpg', Astro.site)} />
+    <meta property="og:locale" content="es_AR" />
+    {jsonLd && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}
+    <script is:inline>document.documentElement.classList.add('js');</script>
+  </head>
+  <body>
+    <a class="skip visually-hidden" href="#contenido">Saltar al contenido</a>
+
+    <header class="site-header" data-header>
+      <div class="site-header__inner wrap">
+        <a class="site-header__brand" href="/" aria-label={`${SITE.name}, inicio`}>
+          <Image src={logo} alt="" width={36} height={36} densities={[1, 2, 3]} loading="eager" />
+          <span>{SITE.name}</span>
+        </a>
+        <nav class="site-header__nav" aria-label="Principal">
+          <a class="link desktop-only" href="/#servicios">Servicios</a>
+          <a class="link desktop-only" href="/#equipo">Equipo</a>
+          <a class="link desktop-only" href="/#ubicacion">Ubicación</a>
+          <a class="site-header__cta" href={bookingUrl('header')}>Reservar</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="contenido">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap site-footer__inner">
+        <p class="site-footer__name">{SITE.name}</p>
+        <address>
+          {FULL_ADDRESS}
+        </address>
+        <ul class="site-footer__links" role="list">
+          <li><a class="link" href={bookingUrl('footer')}>Reservar turno</a></li>
+          <li><a class="link" href={SITE.googleMaps} rel="noopener">Google Maps</a></li>
+          {SITE.instagram && <li><a class="link" href={SITE.instagram} rel="noopener">Instagram</a></li>}
+          {SITE.whatsapp && <li><a class="link" href={`https://wa.me/${SITE.whatsapp}`} rel="noopener">WhatsApp</a></li>}
+        </ul>
+        <p class="site-footer__legal">© {year} {SITE.name}</p>
+      </div>
+    </footer>
+
+    <a class="booking-bar" href={bookingUrl('barra_movil')} data-booking-bar>
+      Reservar turno
+    </a>
+
+    <script>
+      // Header sólido al bajar y barra de reserva visible después del hero.
+      const header = document.querySelector('[data-header]');
+      const bar = document.querySelector('[data-booking-bar]');
+      const hero = document.querySelector('[data-hero]');
+
+      const onScroll = () => header?.classList.toggle('is-solid', window.scrollY > 24);
+      onScroll();
+      window.addEventListener('scroll', onScroll, { passive: true });
+
+      if (hero && bar) {
+        new IntersectionObserver(([entry]) => {
+          bar.classList.toggle('is-visible', !entry.isIntersecting);
+        }).observe(hero);
+      } else {
+        bar?.classList.add('is-visible');
+      }
+    </script>
+  </body>
+</html>
+
+<style>
+  .skip:focus {
+    position: fixed;
+    z-index: calc(var(--z-header) + 1);
+    top: 1rem;
+    left: 1rem;
+    width: auto;
+    height: auto;
+    padding: 0.75rem 1rem;
+    clip: auto;
+    background: var(--light);
+    color: var(--night);
+  }
+
+  .site-header {
+    position: fixed;
+    z-index: var(--z-header);
+    inset: 0 0 auto;
+    padding-top: env(safe-area-inset-top);
+    transition:
+      background-color 0.4s var(--ease-out),
+      border-color 0.4s var(--ease-out);
+    border-bottom: 1px solid transparent;
+  }
+
+  .site-header:global(.is-solid) {
+    background: oklch(0.145 0.008 255 / 0.92);
+    border-bottom-color: var(--line);
+    backdrop-filter: blur(12px);
+  }
+
+  .site-header__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--header-h);
+  }
+
+  .site-header__brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    text-decoration: none;
+  }
+
+  .site-header__brand img {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 2px;
+  }
+
+  .site-header__nav {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+    font-size: 0.9375rem;
+  }
+
+  .site-header__nav .link {
+    text-decoration-line: underline;
+    text-decoration-color: transparent;
+  }
+
+  .site-header__nav .link:hover {
+    text-decoration-color: var(--light);
+  }
+
+  .site-header__cta {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 1.125rem;
+    border: 1px solid var(--line-strong);
+    font-size: 0.875rem;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    transition:
+      border-color 0.3s,
+      background-color 0.3s,
+      color 0.3s;
+  }
+
+  .site-header__cta:hover {
+    border-color: var(--light);
+    background: var(--light);
+    color: var(--night);
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  @media (min-width: 56rem) {
+    .desktop-only {
+      display: inline-flex;
+    }
+  }
+
+  .site-footer {
+    padding-block: 4rem calc(6rem + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    color: var(--text-muted);
+    font-size: 0.9375rem;
+  }
+
+  .site-footer__inner {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .site-footer__name {
+    color: var(--light);
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+  }
+
+  address {
+    font-style: normal;
+  }
+
+  .site-footer__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.5rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    color: var(--light);
+  }
+
+  .site-footer__legal {
+    margin-top: 1.5rem;
+    font-size: 0.8125rem;
+  }
+
+  @media (min-width: 56rem) {
+    .site-footer {
+      padding-bottom: 4rem;
+    }
+  }
+
+  /* Barra de reserva fija, solo en celular. */
+  .booking-bar {
+    position: fixed;
+    z-index: var(--z-sticky);
+    right: var(--gutter);
+    bottom: calc(1rem + env(safe-area-inset-bottom));
+    left: var(--gutter);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3.25rem;
+    background: var(--light);
+    color: var(--night);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    box-shadow:
+      0 0 0 1px oklch(1 0 0 / 0.6),
+      0 10px 40px oklch(0 0 0 / 0.5),
+      0 0 30px oklch(1 0 0 / 0.15);
+    transition:
+      transform 0.5s var(--ease-out),
+      opacity 0.5s var(--ease-out);
+  }
+
+  :global(.js) .booking-bar:not(:global(.is-visible)) {
+    transform: translateY(calc(100% + 2rem));
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  @media (min-width: 56rem) {
+    .booking-bar {
+      display: none;
+    }
+  }
+</style>
