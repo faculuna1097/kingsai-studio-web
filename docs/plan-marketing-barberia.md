@@ -17,7 +17,7 @@ QR / boca en boca      ─┘   (link con UTM)         └─ origen de cada tur
 - **Brief:** nombre exacto (como figura en el cartel), dirección, WhatsApp, horarios y feriados, servicios con precio y duración, barberos, medios de pago, diferenciales, barrio principal y 2-3 vecinos a los que apuntar, y 3-5 competidores que hoy salen arriba en Maps.
 - **Cuentas a nombre del cliente:** la cuenta de Google de la barbería es la propietaria de la ficha y el portfolio de Meta Business es de ellos; vos entrás como administrador. Nunca las crees en tu cuenta personal.
 - **Ficha existente: no se crea una nueva, se traspasa.** Crear otra para el mismo local genera un duplicado: Google lo fusiona o suspende, el posicionamiento se parte y se pierden reseñas, fotos y antigüedad.
-  - **Situación actual:** la ficha la creó Miguel con su cuenta personal de Google. Ya se tiene acceso.
+  - **Situación actual (oct-2026):** la ficha la creó Miguel con su cuenta personal y ya se transfirió a la cuenta neutral de la barbería, `ks.kingsai@gmail.com`. La administra la agencia durante el trabajo; al terminar se entregan la cuenta y la contraseña a Miguel y Mateo.
   - **Decisión:** la propiedad principal pasa a una **cuenta de Google neutral de la barbería**, que no es de ninguno de los dos dueños ni de la agencia.
   1. **Crear la cuenta de la barbería** (ej. `barberia.nombre@gmail.com`), con celular y email de recuperación de uno de los dueños. Miguel y Mateo tienen la contraseña.
   2. **Desde la cuenta de Miguel:** en la ficha, ⋮ → Personas y acceso → Agregar → la cuenta de la barbería como **Propietario**. Desde la cuenta nueva, aceptar la invitación.
@@ -26,7 +26,7 @@ QR / boca en boca      ─┘   (link con UTM)         └─ origen de cada tur
 
      | Cuenta | Rol |
      |---|---|
-     | Barbería (neutral) | Propietario principal |
+     | Barbería (neutral, `ks.kingsai@gmail.com`) | Propietario principal |
      | Miguel y Mateo (personales) | Propietarios |
      | Agencia (KingsAI Studio) | Administrador |
 
