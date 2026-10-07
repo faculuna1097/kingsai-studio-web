@@ -1,7 +1,7 @@
 # Plan: Google + marketing digital para la barbería
 
 ## Contexto
-- **Cliente:** barbería en CABA/GBA. La web la hacés vos aparte; acá solo entran los requisitos de SEO local que tiene que cumplir.
+- **Cliente:** barbería en CABA/GBA. **Dueños: Miguel y Mateo.** La web la hacés vos aparte; acá solo entran los requisitos de SEO local que tiene que cumplir.
 - **Hoy tiene:** ficha en Google Maps (no sabemos quién la administra), Instagram activo y WhatsApp común. Los turnos se toman con la web app que les hiciste (tiene link; por lo que marcaste, no guarda contacto ni manda mensajes). El contenido lo hacen los barberos y unos amigos que saben. Pauta: nada por ahora. Tu rol todavía no está definido, así que el plan incluye cómo paquetizarlo.
 - **Objetivo:** que la barbería salga arriba en Maps cuando alguien busca en su barrio, que esas visitas terminen en un turno en tu app y que los clientes vuelvan. Todo medido por canal.
 - **Tesis:** sin pauta y en una zona competitiva, lo que mueve la aguja es (1) una ficha de Google impecable, (2) un flujo constante de reseñas, (3) contenido regular y (4) tu app como centro: registra de dónde viene cada turno y automatiza reseñas y re-turnos. Esto último es una ventaja que la competencia no tiene.
@@ -16,19 +16,23 @@ QR / boca en boca      ─┘   (link con UTM)         └─ origen de cada tur
 ## Fase 0 — Kickoff y accesos (semana 1)
 - **Brief:** nombre exacto (como figura en el cartel), dirección, WhatsApp, horarios y feriados, servicios con precio y duración, barberos, medios de pago, diferenciales, barrio principal y 2-3 vecinos a los que apuntar, y 3-5 competidores que hoy salen arriba en Maps.
 - **Cuentas a nombre del cliente:** la cuenta de Google de la barbería es la propietaria de la ficha y el portfolio de Meta Business es de ellos; vos entrás como administrador. Nunca las crees en tu cuenta personal.
-- **Ficha existente: se reclama, no se crea una nueva.** Crear otra para el mismo local genera un duplicado: Google lo fusiona o suspende, el posicionamiento se parte y se pierden reseñas, fotos y antigüedad. Reclamarla da el mismo control que "empezar de cero".
-  1. **Cuenta de Google de la barbería** (ej. `barberia.nombre@gmail.com`):
-     - si el dueño ya tiene una, se usa esa;
-     - si no, se crea ahora a nombre del negocio, con el celular y un email de recuperación del dueño. El dueño guarda la contraseña.
-  2. **Reclamo desde esa cuenta:** buscar la barbería en Google Maps → "¿Es el propietario de esta empresa?" / "Reclamar este perfil". Google muestra cuál de estos casos aplica:
-     - **Sin dueño:** se verifica (video, llamada o SMS, según lo que ofrezca Google) y queda reclamada.
-     - **Dueño conocido** (ex empleado, dueño anterior, familiar): Google muestra parte de su email (`j•••@gmail.com`). Se le pide que transfiera la propiedad a la cuenta de la barbería.
-     - **Dueño desconocido:** se manda "Solicitar acceso" desde Google. Esa persona tiene unos días para responder; si no contesta, Google suele habilitar el reclamo. Guardar la confirmación del pedido.
-  3. **Estructura de permisos:**
-     - la cuenta de la barbería queda como **propietaria principal**;
-     - vos entrás como **Administrador** (Configuración → Gestión de perfil → Personas y acceso), nunca con tu cuenta como propietaria;
-     - se saca a cualquier usuario que nadie reconozca.
-  4. **Revisión completa:** cargar todos los datos de nuevo con el Kit de Google, y buscar y reportar duplicados.
+- **Ficha existente: no se crea una nueva, se traspasa.** Crear otra para el mismo local genera un duplicado: Google lo fusiona o suspende, el posicionamiento se parte y se pierden reseñas, fotos y antigüedad.
+  - **Situación actual:** la ficha la creó Miguel con su cuenta personal de Google. Ya se tiene acceso.
+  - **Decisión:** la propiedad principal pasa a una **cuenta de Google neutral de la barbería**, que no es de ninguno de los dos dueños ni de la agencia.
+  1. **Crear la cuenta de la barbería** (ej. `barberia.nombre@gmail.com`), con celular y email de recuperación de uno de los dueños. Miguel y Mateo tienen la contraseña.
+  2. **Desde la cuenta de Miguel:** en la ficha, ⋮ → Personas y acceso → Agregar → la cuenta de la barbería como **Propietario**. Desde la cuenta nueva, aceptar la invitación.
+  3. **Transferir la propiedad principal** desde la cuenta de Miguel a la de la barbería. Si la opción aparece deshabilitada, Google puede exigir que la cuenta nueva lleve unos días como propietaria: esperar y reintentar.
+  4. **Estructura final de permisos:**
+
+     | Cuenta | Rol |
+     |---|---|
+     | Barbería (neutral) | Propietario principal |
+     | Miguel y Mateo (personales) | Propietarios |
+     | Agencia (KingsAI Studio) | Administrador |
+
+     Se saca a cualquier otro usuario que nadie reconozca.
+  5. **Revisión completa:** cargar todos los datos de nuevo con el Kit de Google, y buscar y reportar duplicados.
+  - **Cuenta de la agencia:** `kingsaistudio@gmail.com` se borró (era una cuenta supervisada colgada de la de Miguel) y Google no permite volver a usar una dirección de Gmail borrada. Se crea una cuenta nueva de la agencia, idealmente con un email del dominio propio (ej. `hola@kingsaistudio.com`), independiente de cualquier cliente.
   - **Lo que no se borra ni siendo dueño:** las reseñas y las fotos que subió el público; solo se pueden responder o reportar si violan las políticas.
 - **Línea base,** para poder mostrar resultados:
   - reseñas: cantidad y promedio;
