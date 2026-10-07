@@ -31,8 +31,7 @@ export const SITE = {
   instagram: 'https://www.instagram.com/kingsai.studio/' as string | null,
   // [COMPLETAR] link corto de la ficha ("Pedir reseñas" / "Compartir").
   googleMaps: 'https://www.google.com/maps/search/?api=1&query=Kingsai+Studio+Golf+Club+Necochea+3061+Pilar',
-  // [COMPLETAR] Días en formato schema.org y horario 24 h.
-  hours: [] as { days: string; label: string; opens: string; closes: string }[],
+  // Los horarios salen de la base: getHorarios() en src/lib/data.ts.
 };
 
 export const FULL_ADDRESS = `${SITE.address.street}, ${SITE.address.postalCode} ${SITE.address.locality}, ${SITE.address.region}`;

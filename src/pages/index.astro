@@ -6,10 +6,21 @@ import Arrow from '../components/Arrow.astro';
 import localFoto from '../assets/local.webp';
 import logo from '../assets/logo.webp';
 import { SITE, FULL_ADDRESS, bookingUrl } from '../config';
-import { getServicios, getBarberos, formatPrecio } from '../lib/data';
+import { getServicios, getBarberos, getHorarios, formatPrecio } from '../lib/data';
 
 const servicios = await getServicios();
 const barberos = await getBarberos();
+const horarios = await getHorarios();
+
+// Para mostrar: las franjas de un mismo grupo de días van en una sola fila
+// ("Lunes a viernes: 10:00 a 13:00 y 16:00 a 20:00").
+const horariosPorDias = horarios.reduce<{ label: string; franjas: string[] }[]>((filas, h) => {
+  const franja = `${h.opens} a ${h.closes}`;
+  const ultima = filas[filas.length - 1];
+  if (ultima?.label === h.label) ultima.franjas.push(franja);
+  else filas.push({ label: h.label, franjas: [franja] });
+  return filas;
+}, []);
 
 // Respuestas confirmadas por la barbería (oct-2026). Sirven también para la ficha de Google.
 const faq = [
@@ -63,8 +74,8 @@ const jsonLd = {
   },
   ...(SITE.geo && { geo: { '@type': 'GeoCoordinates', latitude: SITE.geo.lat, longitude: SITE.geo.lng } }),
   ...(SITE.whatsapp && { telephone: `+${SITE.whatsapp}` }),
-  ...(SITE.hours.length && {
-    openingHoursSpecification: SITE.hours.map((h) => ({
+  ...(horarios.length && {
+    openingHoursSpecification: horarios.map((h) => ({
       '@type': 'OpeningHoursSpecification',
       dayOfWeek: h.days,
       opens: h.opens,
@@ -245,14 +256,12 @@ const jsonLd = {
           {SITE.address.postalCode} {SITE.address.locality}, {SITE.address.region}
         </address>
         {
-          SITE.hours.length > 0 && (
+          horariosPorDias.length > 0 && (
             <dl class="ubicacion__hours">
-              {SITE.hours.map((h) => (
+              {horariosPorDias.map((h) => (
                 <div>
                   <dt>{h.label}</dt>
-                  <dd>
-                    {h.opens} a {h.closes}
-                  </dd>
+                  <dd>{h.franjas.join(' y ')}</dd>
                 </div>
               ))}
             </dl>

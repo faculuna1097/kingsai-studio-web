@@ -1,14 +1,14 @@
 # Publicación de la web
 
-La web está publicada en **Vercel** (`vercel.json`: framework Astro, salida `dist`). Lee servicios y barberos de la base de la app de turnos (Supabase) **al compilar**, así que cada cambio de datos necesita un deploy nuevo. Ver `src/lib/data.ts`.
+La web está publicada en **Vercel** (`vercel.json`: framework Astro, salida `dist`). Lee servicios, barberos y horarios de la base de la app de turnos (Supabase) **al compilar**, así que cada cambio de datos necesita un deploy nuevo. Ver `src/lib/data.ts`.
 
 ## Estado actual (oct-2026)
 
 - **Supabase:**
-  - Las vistas `public.web_servicios` (nombre, precio) y `public.web_barberos` (nombre) están filtradas por la barbería de Kingsai (`tenant_id = a1b2c3d4-0000-0000-0000-000000000001`) y por `activo`.
-  - El rol `anon` solo tiene SELECT sobre esas dos vistas. Las tablas siguen cerradas: tienen RLS activado y ninguna política.
+  - Las vistas `public.web_servicios` (nombre, precio), `public.web_barberos` (nombre) y `public.web_horarios` (día, hora de inicio y de fin) están filtradas por la barbería de Kingsai (`tenant_id = a1b2c3d4-0000-0000-0000-000000000001`) y, donde existe, por `activo`. El SQL de `web_horarios` está en la sección 3.
+  - El rol `anon` solo tiene SELECT sobre esas tres vistas. Las tablas siguen cerradas: tienen RLS activado y ninguna política.
 - **Vercel:** las variables `SUPABASE_URL` y `SUPABASE_ANON_KEY` ya están cargadas y el build lee las vistas.
-- **Actualización automática:** se configura con la sección 2.
+- **Actualización automática:** funciona desde el 2026-10-07 para servicios y barberos (sección 2). Los horarios se suman con la sección 3.
 
 ## 1. Variables de entorno en Vercel
 
@@ -19,7 +19,7 @@ Settings → Environment Variables:
 | `SUPABASE_URL` | URL del proyecto de Supabase (Project Settings → API) |
 | `SUPABASE_ANON_KEY` | La **anon / publishable** key. **Nunca** la `service_role`. |
 
-Si falta una de las dos, el build falla a propósito. Sin ninguna, la web sale con los datos provisorios. Si el build falla con `Supabase (web_servicios)` o `Supabase (web_barberos)`, revisar las variables y que las vistas existan.
+Si falta una de las dos, el build falla a propósito. Sin ninguna, la web sale con los datos provisorios. Si el build falla con `Supabase (web_servicios)`, `Supabase (web_barberos)` o `Supabase (web_horarios)`, revisar las variables y que las vistas existan.
 
 ## 2. Actualización automática
 
@@ -27,6 +27,7 @@ Supabase llama al deploy hook de Vercel cuando, **en Kingsai**, cambia algo que 
 
 - **`servicio`:** alta, baja, o cambio de `nombre`, `precio` o `activo`.
 - **`barbero`:** alta, baja, o cambio de `nombre` o `activo`.
+- **`tenant_horario_atencion`:** alta, baja, o cambio de `dia_semana`, `hora_inicio` u `hora_fin`.
 
 No dispara con:
 - cambios de PIN, email, comisión, `token_version` ni otras columnas;
@@ -100,6 +101,8 @@ select vault.update_secret(
 
 ### 2.4 Función y triggers
 
+Estado final, con horarios incluidos. Si ya existen los triggers de servicio y barbero, correr la sección 3.2 en vez de todo esto.
+
 ```sql
 -- ============================================================
 -- Función: decide si el cambio afecta la web y, si es así,
@@ -116,8 +119,33 @@ declare
   v_cambio boolean := false;
   v_url    text;
 begin
-  -- filas_nuevas / filas_viejas son las tablas de transición de la sentencia
-  if tg_op = 'INSERT' then
+  -- filas_nuevas / filas_viejas son las tablas de transición de la sentencia.
+  -- Cada consulta se resuelve recién al ejecutarse, así que cada rama puede
+  -- usar columnas que solo existen en su tabla.
+
+  if tg_table_name = 'tenant_horario_atencion' then
+    -- Horarios (no tienen "activo"): cualquier alta, baja o cambio de día u horas
+    if tg_op = 'INSERT' then
+      select exists (
+        select 1 from filas_nuevas n where n.tenant_id = c_tenant
+      ) into v_cambio;
+    elsif tg_op = 'DELETE' then
+      select exists (
+        select 1 from filas_viejas o where o.tenant_id = c_tenant
+      ) into v_cambio;
+    else
+      select exists (
+        select 1
+        from filas_viejas o
+        join filas_nuevas n on n.id = o.id
+        where c_tenant in (o.tenant_id, n.tenant_id)
+          and (o.dia_semana  is distinct from n.dia_semana
+            or o.hora_inicio is distinct from n.hora_inicio
+            or o.hora_fin    is distinct from n.hora_fin)
+      ) into v_cambio;
+    end if;
+
+  elsif tg_op = 'INSERT' then
     -- Alta de un servicio o barbero activo de Kingsai
     select exists (
       select 1 from filas_nuevas n
@@ -222,7 +250,23 @@ after delete on public.barbero
 referencing old table as filas_viejas
 for each statement execute function public.web_deploy_kingsai();
 
--- Verificación: tienen que aparecer los 6 triggers
+-- tenant_horario_atencion
+create trigger web_deploy_horario_insert
+after insert on public.tenant_horario_atencion
+referencing new table as filas_nuevas
+for each statement execute function public.web_deploy_kingsai();
+
+create trigger web_deploy_horario_update
+after update on public.tenant_horario_atencion
+referencing old table as filas_viejas new table as filas_nuevas
+for each statement execute function public.web_deploy_kingsai();
+
+create trigger web_deploy_horario_delete
+after delete on public.tenant_horario_atencion
+referencing old table as filas_viejas
+for each statement execute function public.web_deploy_kingsai();
+
+-- Verificación: tienen que aparecer los 9 triggers
 select event_object_table as tabla, trigger_name, event_manipulation as evento
 from information_schema.triggers
 where trigger_name like 'web_deploy_%'
@@ -261,6 +305,9 @@ alter table public.servicio disable trigger web_deploy_servicio_delete;
 alter table public.barbero  disable trigger web_deploy_barbero_insert;
 alter table public.barbero  disable trigger web_deploy_barbero_update;
 alter table public.barbero  disable trigger web_deploy_barbero_delete;
+alter table public.tenant_horario_atencion disable trigger web_deploy_horario_insert;
+alter table public.tenant_horario_atencion disable trigger web_deploy_horario_update;
+alter table public.tenant_horario_atencion disable trigger web_deploy_horario_delete;
 -- Para reactivarlo: lo mismo con "enable trigger".
 ```
 
@@ -273,9 +320,49 @@ drop trigger if exists web_deploy_servicio_delete on public.servicio;
 drop trigger if exists web_deploy_barbero_insert  on public.barbero;
 drop trigger if exists web_deploy_barbero_update  on public.barbero;
 drop trigger if exists web_deploy_barbero_delete  on public.barbero;
+drop trigger if exists web_deploy_horario_insert  on public.tenant_horario_atencion;
+drop trigger if exists web_deploy_horario_update  on public.tenant_horario_atencion;
+drop trigger if exists web_deploy_horario_delete  on public.tenant_horario_atencion;
 drop function if exists public.web_deploy_kingsai();
 delete from vault.secrets where name = 'kingsai_deploy_hook';
 -- pg_net puede quedar habilitado; si nada más lo usa: drop extension pg_net;
 ```
 
 Las vistas `web_*` y los permisos de `anon` no se tocan en ninguno de estos pasos.
+
+## 3. Horarios de atención
+
+La app guarda el horario **del local** en `tenant_horario_atencion`: una fila por franja, con `dia_semana` (0 = domingo … 6 = sábado), `hora_inicio` y `hora_fin`. Un día con horario cortado tiene dos filas. Un día sin filas está cerrado. (`barbero_horario` es el horario de cada barbero y la web no lo usa.)
+
+La web lo lee con `getHorarios()` (`src/lib/data.ts`):
+- agrupa los días seguidos que tienen las mismas franjas ("Lunes a viernes", "Sábados");
+- lo muestra en la sección Ubicación;
+- lo publica en el JSON-LD (`openingHoursSpecification`).
+
+Sin variables de entorno, o si la barbería no cargó horarios, la web no muestra horarios.
+
+### 3.1 Vista `web_horarios`
+
+```sql
+-- Horario del local de Kingsai: solo día y horas
+create view public.web_horarios as
+select h.dia_semana, h.hora_inicio, h.hora_fin
+from public.tenant_horario_atencion h
+where h.tenant_id = 'a1b2c3d4-0000-0000-0000-000000000001';
+
+-- Igual que las otras vistas: se sacan los permisos por defecto y anon solo lee
+revoke all on public.web_horarios from anon, authenticated, public;
+grant select on public.web_horarios to anon;
+
+-- Verificación: el horario que va a mostrar la web
+select * from public.web_horarios order by dia_semana, hora_inicio;
+```
+
+### 3.2 Sumar los horarios al auto-deploy
+
+Sobre una base que ya tiene la sección 2.4 de servicios y barberos:
+
+1. Correr el `create or replace function` de la sección 2.4 **completo**, desde `create or replace function` hasta el `revoke execute`. Reemplaza la función por la versión que también entiende horarios.
+2. Correr **solo** los tres `create trigger web_deploy_horario_*` y la verificación del final. Tienen que aparecer 9 triggers.
+
+**Para probarlo:** cambiar un horario en la app de turnos y revisar `net._http_response` y Deployments de Vercel, como en la sección 2.5. Si la app guarda los horarios borrando y volviendo a cargar las filas, salen dos deploys (uno por la baja y otro por el alta). Es inofensivo.
