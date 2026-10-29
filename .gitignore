@@ -5,3 +5,6 @@ dist/
 .env.*
 !.env.example
 .impeccable/
+
+# Videos originales del dueño (pesados); los comprimidos van en public/media
+videos-originales/

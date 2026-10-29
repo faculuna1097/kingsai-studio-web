@@ -1,13 +1,11 @@
 ---
-import { Image } from 'astro:assets';
 import Layout from '../layouts/Layout.astro';
 import Sparkle from '../components/Sparkle.astro';
 import Arrow from '../components/Arrow.astro';
 import EstadoLocal from '../components/EstadoLocal.astro';
 import Mapa from '../components/Mapa.astro';
+import Oficio from '../components/Oficio.astro';
 import InstagramIcon from '../components/InstagramIcon.astro';
-import localFoto from '../assets/local.webp';
-import logo from '../assets/logo.webp';
 import { SITE, FULL_ADDRESS, bookingUrl } from '../config';
 import { getServicios, getBarberos, getHorarios, formatPrecio } from '../lib/data';
 
@@ -142,40 +140,10 @@ const jsonLd = {
     </div>
   </section>
 
-  <!-- Nosotros: el local, la raíz tattoo y cómo llegar -->
+  <!-- Nosotros: el oficio en video y cómo llegar -->
   <section class="nosotros section" id="nosotros" aria-labelledby="nosotros-titulo">
     <h2 id="nosotros-titulo" class="visually-hidden">Nosotros</h2>
-    <div class="wrap local__grid">
-      <p class="local__statement">
-        Paredes grafito, techo negro y tubos de luz blanca. Una luz que no perdona: por eso cada línea sale
-        prolija.
-      </p>
-      <figure class="local__figure">
-        <Image
-          src={localFoto}
-          alt="Interior de Kingsai Studio: sillones con capas a rayas, espejos altos y tubos de luz blanca cruzando el techo negro"
-          widths={[480, 729]}
-          sizes="(min-width: 56rem) 45vw, 100vw"
-        />
-        <figcaption>{SITE.address.street}, Pilar</figcaption>
-      </figure>
-    </div>
-
-    <div class="wrap raiz">
-      <div class="raiz__logo">
-        <Image src={logo} alt="Logo de Kingsai Studio: la Virgen entre dos rosas rojas, en estilo tattoo tradicional" width={486} />
-      </div>
-      <div class="raiz__texto">
-        <h3 class="nosotros__titulo">
-          Raíz tattoo
-          <Sparkle class="raiz__sparkle" />
-        </h3>
-        <p class="lede">
-          La marca viene del tattoo tradicional: la Virgen, las rosas rojas, los destellos. En las paredes cuelga flash
-          enmarcado. El resto es silencio, buena luz y oficio.
-        </p>
-      </div>
-    </div>
+    <Oficio />
 
     <div class="wrap llegar" id="como-llegar">
       <div class="llegar__texto">
@@ -578,49 +546,6 @@ const jsonLd = {
     }
   }
 
-  /* ---------- El local ---------- */
-  .local__grid {
-    display: grid;
-    gap: 3rem;
-  }
-
-  .local__statement {
-    max-width: 22ch;
-    font-family: var(--font-display);
-    font-size: clamp(1.75rem, 6.5vw, 2.75rem);
-    line-height: 1.18;
-    text-wrap: balance;
-  }
-
-  .local__figure {
-    margin: 0;
-  }
-
-  .local__figure img {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 4 / 5;
-    object-fit: cover;
-  }
-
-  .local__figure figcaption {
-    margin-top: 0.875rem;
-    color: var(--text-muted);
-    font-size: 0.875rem;
-  }
-
-  @media (min-width: 56rem) {
-    .local__grid {
-      grid-template-columns: 1fr 1fr;
-      align-items: end;
-      gap: 6rem;
-    }
-
-    .local__statement {
-      padding-bottom: 4rem;
-    }
-  }
-
   /* ---------- Servicios ---------- */
   .servicios {
     background: var(--graphite);
@@ -823,46 +748,17 @@ const jsonLd = {
     }
   }
 
-  /* ---------- Nosotros: raíz tattoo y cómo llegar ---------- */
+  /* ---------- Nosotros: cómo llegar ---------- */
   .nosotros__titulo {
     font-size: clamp(2.25rem, 8vw, 3.5rem);
   }
 
-  .raiz,
   .llegar {
     display: grid;
     gap: 3rem;
     margin-top: clamp(5rem, 14vw, 9rem);
     padding-top: clamp(5rem, 14vw, 9rem);
     border-top: 1px solid var(--line);
-  }
-
-  .raiz__logo {
-    width: min(100%, 22rem);
-    padding: 0.75rem;
-    border: 1px solid var(--line);
-  }
-
-  .raiz__logo img {
-    width: 100%;
-    height: auto;
-  }
-
-  .raiz__texto h3 {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-
-  .raiz__texto :global(.raiz__sparkle) {
-    flex: none;
-    width: 1.25rem;
-    margin-top: 0.25em;
-    color: var(--rose);
-  }
-
-  .raiz__texto .lede {
-    margin-top: 1.5rem;
   }
 
   .llegar__address {
@@ -876,12 +772,6 @@ const jsonLd = {
   }
 
   @media (min-width: 56rem) {
-    .raiz {
-      grid-template-columns: auto 1fr;
-      align-items: center;
-      gap: 6rem;
-    }
-
     .llegar {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr);
       align-items: end;

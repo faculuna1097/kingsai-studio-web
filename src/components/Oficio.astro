@@ -1,0 +1,269 @@
+---
+// El oficio: dos videos del trabajo en cuadros verticales. Cada vez que la sección sale
+// de pantalla, uno de los dos cambia por el video que estaba esperando (se turnan los cuadros).
+// Los videos se descargan recién cerca de la pantalla, se pausan al salir y, con movimiento
+// reducido o ahorro de datos, queda solo el póster.
+const videos = [
+  {
+    src: '/media/oficio-corte.mp4',
+    poster: '/media/oficio-corte.jpg',
+    leyenda: 'Fade y tijera',
+    alt: 'Corte en Kingsai Studio: fade con navaja y tijera',
+  },
+  {
+    src: '/media/oficio-navaja.mp4',
+    poster: '/media/oficio-navaja.jpg',
+    leyenda: 'Perfilado a navaja',
+    alt: 'Perfilado de barba a navaja en Kingsai Studio',
+  },
+  {
+    src: '/media/oficio-local.mp4',
+    poster: '/media/oficio-local.jpg',
+    leyenda: 'El local',
+    alt: 'Recorrido por el local: espejos, plantas y cuadros flash en las paredes grafito',
+  },
+];
+---
+
+<div class="wrap oficio">
+  <div class="oficio__texto">
+    <hr class="tube oficio__tube" />
+    <h3 class="oficio__titulo">
+      <span>Fade.</span>
+      <span>Tijera.</span>
+      <span>Navaja.</span>
+    </h3>
+    <p class="lede">Así se trabaja en Kingsai.</p>
+    <a class="link" href="#servicios">Ver servicios y precios</a>
+  </div>
+
+  <div class="oficio__videos" data-oficio data-videos={JSON.stringify(videos)}>
+    {
+      videos.slice(0, 2).map((v) => (
+        <figure class="oficio__cuadro" data-cuadro>
+          <div class="oficio__marco">
+            <video muted loop playsinline preload="none" poster={v.poster} aria-label={v.alt} />
+          </div>
+          <figcaption>{v.leyenda}</figcaption>
+        </figure>
+      ))
+    }
+  </div>
+</div>
+
+<script>
+  type Video = { src: string; poster: string; leyenda: string; alt: string };
+
+  const reducido = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const ahorro = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData === true;
+  const soloPoster = () => reducido.matches || ahorro;
+
+  document.querySelectorAll<HTMLElement>('[data-oficio]').forEach((el) => {
+    const videos: Video[] = JSON.parse(el.dataset.videos!);
+    const cuadros = [...el.querySelectorAll<HTMLElement>('[data-cuadro]')].map((figura) => ({
+      figura,
+      video: figura.querySelector('video')!,
+      leyenda: figura.querySelector('figcaption')!,
+    }));
+
+    // Qué video muestra cada cuadro y cuáles esperan su turno.
+    const enCuadro = cuadros.map((_, i) => i);
+    const enEspera = videos.map((_, i) => i).slice(cuadros.length);
+    let turno = 0; // cuadro que cambia la próxima vez
+    let visto = false; // la sección entró en pantalla desde el último cambio
+    let cerca = false;
+    const visibles = new Set<HTMLVideoElement>();
+
+    const reproducir = (video: HTMLVideoElement) => {
+      if (video.getAttribute('src')) video.play().catch(() => {});
+    };
+
+    const cargar = () => {
+      if (soloPoster()) return;
+      cuadros.forEach(({ video }, i) => {
+        if (video.getAttribute('src')) return;
+        video.preload = 'auto';
+        video.src = videos[enCuadro[i]].src;
+        if (visibles.has(video)) reproducir(video);
+      });
+    };
+
+    const rotar = () => {
+      if (!enEspera.length) return;
+      const c = turno;
+      const entra = enEspera.shift()!;
+      enEspera.push(enCuadro[c]);
+      enCuadro[c] = entra;
+      turno = (turno + 1) % cuadros.length;
+
+      const { figura, video, leyenda } = cuadros[c];
+      const v = videos[entra];
+      video.pause();
+      video.removeAttribute('src');
+      video.load(); // suelta el video anterior y vuelve al póster
+      video.poster = v.poster;
+      video.setAttribute('aria-label', v.alt);
+      leyenda.textContent = v.leyenda;
+      figura.classList.add('is-nuevo');
+      if (cerca) cargar();
+    };
+
+    // Cerca de la pantalla: empieza la descarga.
+    new IntersectionObserver(
+      ([entry]) => {
+        cerca = entry.isIntersecting;
+        if (cerca) cargar();
+      },
+      { rootMargin: '50% 0px' },
+    ).observe(el);
+
+    // Afuera del todo: si ya se vio, cambia un video para la próxima vuelta.
+    new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) visto = true;
+      else if (visto) {
+        visto = false;
+        rotar();
+      }
+    }).observe(el);
+
+    // Cada video corre solo mientras se ve; el que cambió entra enfocándose.
+    const enPantalla = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(({ target, isIntersecting }) => {
+          const video = target as HTMLVideoElement;
+          if (!isIntersecting) {
+            visibles.delete(video);
+            video.pause();
+            return;
+          }
+          visibles.add(video);
+          reproducir(video);
+          const figura = video.closest<HTMLElement>('[data-cuadro]')!;
+          if (figura.classList.contains('is-nuevo')) {
+            figura.classList.remove('is-nuevo');
+            figura.classList.add('is-entra');
+          }
+        });
+      },
+      { threshold: 0.2 },
+    );
+
+    cuadros.forEach(({ figura, video }) => {
+      enPantalla.observe(video);
+      figura.addEventListener('animationend', () => figura.classList.remove('is-entra'));
+    });
+  });
+</script>
+
+<style>
+  .oficio {
+    display: grid;
+    gap: 3rem;
+  }
+
+  .oficio__tube {
+    width: 4.5rem;
+    margin-bottom: 1.75rem;
+    transform-origin: left;
+  }
+
+  .oficio__titulo {
+    font-size: clamp(3rem, 15vw, 5.5rem);
+    font-variation-settings: 'opsz' 96;
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+  }
+
+  .oficio__titulo span {
+    display: block;
+  }
+
+  .oficio__texto .lede {
+    margin-top: 1.5rem;
+  }
+
+  .oficio__texto .link {
+    margin-top: 0.5rem;
+    text-decoration-line: underline;
+  }
+
+  /* Dos cuadros a distinta altura, como colgados en la pared. */
+  .oficio__videos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 1rem;
+  }
+
+  .oficio__cuadro {
+    margin: 0;
+  }
+
+  .oficio__cuadro:nth-child(2) {
+    margin-top: clamp(3rem, 20vw, 6rem);
+  }
+
+  .oficio__marco {
+    padding: 0.375rem;
+    border: 1px solid var(--line);
+  }
+
+  .oficio__marco video {
+    width: 100%;
+    aspect-ratio: 9 / 16;
+    object-fit: cover;
+    background: var(--graphite);
+  }
+
+  .oficio__cuadro figcaption {
+    margin-top: 0.75rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+  }
+
+  /* El video que cambió entra desenfocado y se aclara. */
+  .oficio__cuadro:global(.is-entra) video {
+    animation: oficio-enfoque 1.2s var(--ease-out) both;
+  }
+
+  @keyframes oficio-enfoque {
+    from {
+      opacity: 0.4;
+      filter: blur(12px);
+    }
+  }
+
+  /* El tubo se enciende al entrar la sección. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .oficio__tube {
+        animation: oficio-tubo linear both;
+        animation-timeline: view();
+        animation-range: entry 20% cover 35%;
+      }
+    }
+  }
+
+  @keyframes oficio-tubo {
+    from {
+      opacity: 0;
+      transform: scaleX(0);
+    }
+  }
+
+  @media (min-width: 56rem) {
+    .oficio {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+      align-items: center;
+      gap: 6rem;
+    }
+
+    .oficio__videos {
+      gap: 2rem;
+    }
+
+    .oficio__cuadro:nth-child(2) {
+      margin-top: 8rem;
+    }
+  }
+</style>

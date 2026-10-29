@@ -29,3 +29,5 @@ Sobrio, preciso, con raíz tattoo. El local es frío y oscuro: paredes grafito, 
 WCAG 2.1 AA. Contraste de texto ≥ 4,5:1 sobre fondos oscuros, objetivos táctiles ≥ 44 px, video sin sonido, alternativa con `prefers-reduced-motion` (se muestra el póster en vez del video) y carga liviana en datos móviles.
 
 Decisión tomada (oct-2026): el video del hero no tiene botón de pausa. Se aparta del criterio 2.2.2 (Pausar, detener, ocultar); con `prefers-reduced-motion` el video queda quieto.
+
+Decisión tomada (oct-2026): los videos de "El oficio", en Nosotros, tampoco tienen botón de pausa. Se pausan solos al salir de pantalla, y con `prefers-reduced-motion` o ahorro de datos queda el póster.
